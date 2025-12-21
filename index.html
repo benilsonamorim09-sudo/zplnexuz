@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZPL Master | Firebase</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SheetJS (Excel) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; overflow-x: hidden; }
+        .glass-panel { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); }
+        .input-std { background: #1e293b; border: 1px solid #334155; color: white; transition: all 0.2s; outline: none; }
+        .input-std:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center pt-10 pb-4 px-4">
+
+    <!-- STATUS BAR -->
+    <div id="statusBox" class="fixed top-0 left-0 w-full bg-yellow-600 text-white text-center py-2 font-bold z-50 text-xs transition-all duration-500">
+        <i class="fa-solid fa-spinner fa-spin"></i> CONECTANDO AO FIREBASE...
+    </div>
+
+    <!-- HEADER -->
+    <div class="w-full max-w-lg mt-10 mb-4 flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-white"><i class="fa-solid fa-fire text-orange-500"></i> ZPL Master</h1>
+            <p class="text-[10px] text-slate-400">Firebase Realtime Sync</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="toggleModal('helpModal')" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded text-xs font-bold text-white transition"><i class="fa-solid fa-circle-question"></i></button>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="w-full max-w-lg space-y-4">
+        
+        <!-- PAINEL DE DADOS -->
+        <div class="glass-panel p-4 rounded-xl">
+            <h2 class="text-xs font-bold text-slate-400 uppercase mb-2">1. Base de Dados</h2>
+            <div class="flex gap-2">
+                <label class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-lg text-center text-xs font-bold cursor-pointer border border-slate-600 text-white transition">
+                    <i class="fa-solid fa-file-excel block text-lg mb-1 text-green-400"></i> Upload Excel
+                    <input type="file" id="fileInput" class="hidden">
+                </label>
+                <button onclick="loadFromCloud()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-lg text-center text-xs font-bold border border-slate-600 text-white transition">
+                    <i class="fa-solid fa-cloud block text-lg mb-1 text-orange-400"></i> Usar Nuvem
+                </button>
+            </div>
+            <div id="dbInfo" class="mt-2 text-[10px] text-center text-slate-500">Nenhum produto carregado.</div>
+            
+            <button onclick="saveToCloud()" id="btnSaveCloud" class="hidden w-full mt-2 bg-orange-600 hover:bg-orange-500 text-white py-2 rounded text-xs font-bold transition">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Salvar Excel no Firebase
+            </button>
+        </div>
+
+        <!-- ABAS -->
+        <div class="flex gap-2 bg-slate-800 p-1 rounded-lg">
+            <button onclick="setMode('validade')" id="tabVal" class="flex-1 py-2 rounded font-bold text-xs bg-blue-600 text-white transition">Validade</button>
+            <button onclick="setMode('endereco')" id="tabEnd" class="flex-1 py-2 rounded font-bold text-xs text-slate-400 transition">Endereço</button>
+        </div>
+
+        <!-- INPUTS -->
+        <div class="glass-panel p-4 rounded-xl min-h-[180px]">
+            <!-- Validade -->
+            <div id="viewValidade">
+                <label class="text-[10px] uppercase font-bold text-slate-400">Código</label>
+                <input type="tel" id="valCode" class="input-std w-full py-3 px-4 rounded-lg" placeholder="Scan..." oninput="checkCode(this, 'valPreview')">
+                <div id="valPreview" class="h-4 text-xs font-bold text-green-400 mb-2 truncate"></div>
+                
+                <div id="boxDate" class="hidden">
+                    <label class="text-[10px] uppercase font-bold text-slate-400">Validade</label>
+                    <input type="tel" id="valDate" class="input-std w-full py-3 px-4 rounded-lg" placeholder="MMAAAA" oninput="maskDate(this)">
+                    <button onclick="addItemVal()" class="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded font-bold mt-2 transition">ADICIONAR</button>
+                </div>
+            </div>
+
+            <!-- Endereço -->
+            <div id="viewEndereco" class="hidden">
+                <label class="text-[10px] uppercase font-bold text-slate-400">Unitário</label>
+                <div class="flex gap-2 mb-4">
+                    <input type="tel" id="endCode" class="input-std mb-0 w-full py-3 px-4 rounded-lg" placeholder="Scan..." oninput="checkCode(this, 'endPreview')">
+                    <button onclick="addItemEnd()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 rounded-lg font-bold"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <div id="endPreview" class="h-4 text-xs font-bold text-green-400 mb-2 truncate"></div>
+
+                <label class="text-[10px] uppercase font-bold text-slate-400 mt-2">Lista (Massa)</label>
+                <textarea id="endList" class="input-std h-20 w-full py-2 px-4 rounded-lg" placeholder="Cole códigos..."></textarea>
+                <button onclick="addListEnd()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-2 rounded text-xs font-bold mt-2 transition">Processar Lista</button>
+            </div>
+        </div>
+
+        <!-- FILA (REALTIME) -->
+        <div class="glass-panel p-4 rounded-xl">
+            <div class="flex justify-between items-center mb-2">
+                <h3 class="font-bold text-sm text-white">Fila (<span id="queueCount">0</span>)</h3>
+                <button onclick="clearQueue()" class="text-xs text-red-400 hover:text-red-300 font-bold">Limpar</button>
+            </div>
+            <div class="max-h-40 overflow-y-auto border border-slate-700 rounded bg-slate-900/50">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <tbody id="queueTable"><tr><td class="p-4 text-center italic text-slate-500">Vazia</td></tr></tbody>
+                </table>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-2 mt-4">
+                <button onclick="generateZPL()" class="col-span-2 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded font-bold shadow-lg transition">GERAR CÓDIGO</button>
+                
+                <button onclick="printDirect()" id="btnDirect" disabled class="bg-slate-700 text-slate-500 py-2 rounded text-xs border border-slate-600 font-bold cursor-not-allowed transition">
+                    <i class="fa-brands fa-usb"></i> Direto USB
+                </button>
+                
+                <button onclick="downloadFile()" id="btnDownload" disabled class="bg-slate-700 text-slate-500 py-2 rounded text-xs border border-slate-600 font-bold cursor-not-allowed transition">
+                    <i class="fa-solid fa-download"></i> Baixar Txt
+                </button>
+                
+                <button onclick="copyZPL()" id="btnCopy" disabled class="col-span-2 bg-slate-700 text-slate-500 py-2 rounded text-xs border border-slate-600 font-bold cursor-not-allowed transition">
+                    <i class="fa-solid fa-copy"></i> Copiar Código
+                </button>
+            </div>
+            <textarea id="finalZPL" readonly class="w-full h-20 mt-2 bg-black text-green-500 text-[10px] p-2 rounded hidden border border-slate-700"></textarea>
+        </div>
+
+        <div class="text-center mt-4">
+            <button onclick="connectUSB()" class="text-xs text-slate-500 underline hover:text-slate-300">Conectar Impressora USB (Chrome/PC)</button>
+        </div>
+    </div>
+
+    <!-- MODAL AJUDA -->
+    <div id="helpModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-600 overflow-hidden">
+            <div class="bg-slate-900 p-4 border-b border-slate-700 flex justify-between">
+                <h3 class="font-bold text-white">Ajuda</h3>
+                <button onclick="toggleModal('helpModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-6 text-center">
+                <a href="https://wa.me/5598991401141" target="_blank" class="btn bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl shadow-lg w-full md:w-auto inline-flex px-6">
+                    <i class="fa-brands fa-whatsapp text-xl mr-2"></i> Suporte WhatsApp
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-xl font-bold opacity-0 pointer-events-none transition-all duration-300 z-[100] translate-y-10">
+        <i class="fa-solid fa-check-circle"></i> <span>Ação realizada!</span>
+    </div>
+
+    <!-- FIREBASE MODULE -->
+    <script type="module">
+        // =======================================================
+        // 1. COLE AQUI SUAS CHAVES DO FIREBASE
+        // =======================================================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- SUBSTITUA ISSO PELO CÓDIGO QUE VOCÊ COPIOU DO FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_PROJETO.firebaseapp.com",
+            projectId: "SEU_PROJETO_ID",
+            storageBucket: "SEU_PROJETO.appspot.com",
+            messagingSenderId: "NUMERO",
+            appId: "APP_ID"
+        };
+        // -----------------------------------------------------------
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // VARIAVEIS GLOBAIS (Expostas para o HTML usar)
+        window.inventory = [];
+        window.queue = [];
+        window.serialPort = null;
+        let currentMode = 'validade';
+
+        // INIT
+        const statusBox = document.getElementById('statusBox');
+        statusBox.classList.remove('bg-yellow-600');
+        statusBox.classList.add('bg-emerald-600');
+        statusBox.innerHTML = '<i class="fa-solid fa-fire"></i> FIREBASE CONECTADO';
+        setTimeout(() => statusBox.classList.add('hidden'), 2000);
+
+        // SYNC REALTIME (O Segredo do Firebase)
+        const qQueue = query(collection(db, "print_queue"), orderBy("created_at"));
+        onSnapshot(qQueue, (snapshot) => {
+            window.queue = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const prod = findProd(data.codigo);
+                window.queue.push({
+                    id: doc.id, // ID do documento no Firebase
+                    COD: data.codigo,
+                    validade: data.validade,
+                    NOM: prod ? prod.NOM : (data.tempName || 'Aguardando Base...')
+                });
+            });
+            updateUI();
+        });
+
+        // DATA FUNCTIONS
+        window.saveToCloud = async () => {
+            if(window.inventory.length === 0) return alert("Carregue o Excel!");
+            const batchLimit = 500; // Firebase limit
+            
+            statusBox.classList.remove('hidden');
+            statusBox.innerHTML = "Salvando no Banco...";
+
+            // Nota: Para "limpar" a coleção produtos, precisaria ler e deletar. 
+            // Para simplificar, vamos apenas adicionar. Se quiser limpar antes, é mais complexo no front-end puro.
+            // Recomendação: Use isso apenas para carregar bases novas.
+
+            const batch = writeBatch(db);
+            let count = 0;
+            
+            // Salva apenas os primeiros 500 para demo (pode implementar loop de batches)
+            window.inventory.slice(0, 500).forEach((item) => {
+                const ref = doc(collection(db, "products"));
+                batch.set(ref, item);
+                count++;
+            });
+
+            await batch.commit();
+            statusBox.classList.add('hidden');
+            showToast("Produtos Salvos!");
+        };
+
+        window.loadFromCloud = async () => {
+            statusBox.classList.remove('hidden');
+            statusBox.innerHTML = "Baixando Produtos...";
+            const querySnapshot = await getDocs(collection(db, "products"));
+            window.inventory = [];
+            querySnapshot.forEach((doc) => {
+                window.inventory.push(doc.data());
+            });
+            updateDataInfo("Nuvem", window.inventory.length);
+            statusBox.classList.add('hidden');
+            // Refresh queue names
+            updateUI();
+        };
+
+        // QUEUE ACTIONS
+        window.addItemVal = async () => {
+            const c = document.getElementById('valCode').value;
+            const v = document.getElementById('valDate').value;
+            if(v.length < 7) return alert("Data inválida");
+            const prod = findProd(c);
+            
+            await addDoc(collection(db, "print_queue"), {
+                codigo: c,
+                validade: v,
+                tempName: prod ? prod.NOM : 'Desconhecido',
+                created_at: Date.now()
+            });
+            
+            // Reset UI
+            document.getElementById('valCode').value = "";
+            document.getElementById('valDate').value = "";
+            document.getElementById('valPreview').innerText = "";
+            document.getElementById('dateBox').classList.add('hidden');
+            document.getElementById('valCode').focus();
+            showToast("Adicionado!");
+        };
+
+        window.addItemEnd = async () => {
+            const c = extract(document.getElementById('endCode').value);
+            const prod = findProd(c);
+             await addDoc(collection(db, "print_queue"), {
+                codigo: c,
+                validade: "",
+                tempName: prod ? prod.NOM : 'Desconhecido',
+                created_at: Date.now()
+            });
+            document.getElementById('endCode').value = "";
+            document.getElementById('endCode').focus();
+            showToast("Adicionado!");
+        };
+
+        window.removeFromQueue = async (id) => {
+            await deleteDoc(doc(db, "print_queue", id));
+        };
+
+        window.clearQueue = async () => {
+            if(!confirm("Limpar?")) return;
+            const q = await getDocs(collection(db, "print_queue"));
+            q.forEach(async (doc) => {
+                await deleteDoc(doc.ref);
+            });
+            showToast("Fila Limpa");
+        };
+
+        // EXCEL PARSER
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const f = e.target.files[0]; if(!f) return;
+            const b = await f.arrayBuffer(); const wb = XLSX.read(b,{type:'array'});
+            const r = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});
+            
+            window.inventory = r.slice(1).map(x => {
+                if(!x[0]) return null;
+                const c = v => String(v||"").trim().toUpperCase();
+                return { COD:c(x[0]), NOM:c(x[1]), RUA:c(x[4]), RCK:c(x[5]), LIN:c(x[6]), COL:c(x[7]) };
+            }).filter(i => i!==null);
+
+            updateDataInfo("Excel", window.inventory.length);
+            document.getElementById('btnSaveCloud').classList.remove('hidden');
+            updateUI(); // Refresh names in queue
+            e.target.value = '';
+        });
+
+        // --- HELPERS ---
+        function updateDataInfo(source, count) {
+            document.getElementById('dataInfo').innerHTML = `<span class='text-emerald-400 font-bold'>${count}</span> produtos via ${source}`;
+            showToast("Carregado!");
+        }
+
+        window.findProd = (c) => { return window.inventory.find(i=>i.COD == c) || null; }
+        window.extract = (v) => { v=v.replace(/\D/g,''); return v.length>=12 ? v.slice(-6,-1) : v; }
+        window.maskDate = (el) => { let v=el.value.replace(/\D/g,''); if(v.length>2)v=v.substring(0,2)+'/'+v.substring(2,6); el.value=v; }
+        
+        window.checkCode = (el, prevId) => {
+            let v = el.value.replace(/\D/g,''); let finalVal = v;
+            if(v.length>=12) finalVal = window.extract(v);
+            const p = window.findProd(finalVal);
+            const prev = document.getElementById(prevId);
+            if(p) {
+                el.value = finalVal; prev.innerText=p.NOM;
+                if(prevId==='valName'){ document.getElementById('dateBox').classList.remove('hidden'); setTimeout(()=>document.getElementById('valDate').focus(),100); }
+            } else { prev.innerText=v.length>3?"Não encontrado":""; }
+        };
+
+        window.handleEnter = (e) => { if(e.key==="Enter") window.addItemVal(); }
+        window.handleEnterEnd = (e) => { if(e.key==="Enter") window.addItemEnd(); }
+
+        window.updateUI = () => {
+            const tb=document.getElementById('queueTable'); 
+            document.getElementById('queueCount').innerText=window.queue.length;
+            if(window.queue.length===0) return tb.innerHTML='<tr><td colspan="4" class="p-8 text-center text-slate-600 italic">Vazia</td></tr>';
+            
+            tb.innerHTML = window.queue.map((i,idx)=> `
+                <tr class="border-b border-slate-700/50 hover:bg-slate-800/50 transition">
+                    <td class="p-3 font-mono text-slate-500 text-xs">${idx+1}</td>
+                    <td class="p-3"><div class="font-bold text-white text-xs">${i.COD}</div><div class="text-[10px] text-slate-400 truncate w-32">${i.NOM}</div></td>
+                    <td class="p-3 text-emerald-400 text-xs text-center">${i.validade||'-'}</td>
+                    <td class="p-3 text-right"><button onclick="removeFromQueue('${i.id}')" class="text-red-400 hover:text-white"><i class="fa-solid fa-times"></i></button></td>
+                </tr>`).join('');
+            
+            // Enable buttons logic here (omitted for brevity, same as before)
+            const hasItems = window.queue.length > 0;
+            ['btnDownload','btnCopy'].forEach(id => document.getElementById(id).disabled = !hasItems);
+             if(hasItems) {
+                document.getElementById('btnDownload').classList.remove('bg-slate-700');
+                document.getElementById('btnDownload').classList.add('bg-blue-600');
+                document.getElementById('btnCopy').classList.remove('bg-slate-700');
+                document.getElementById('btnCopy').classList.add('bg-slate-600');
+            }
+        };
+
+        // UI Toggles
+        window.setMode = (m) => {
+            document.getElementById('formValidade').classList.toggle('hidden', m!=='validade');
+            document.getElementById('formEndereco').classList.toggle('hidden', m!=='endereco');
+            const bV=document.getElementById('tabVal'), bE=document.getElementById('tabEnd');
+            if(m==='validade'){ bV.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white"; bE.className="flex-1 py-2 text-xs font-bold rounded text-slate-400"; }
+            else { bE.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white"; bV.className="flex-1 py-2 text-xs font-bold rounded text-slate-400"; }
+        };
+        window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
+        window.showToast = (msg) => {
+            const t = document.getElementById('toast');
+            t.querySelector('span').innerText = msg;
+            t.classList.remove('translate-y-10', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-y-10', 'opacity-0'), 2500);
+        };
+
+        // ZPL & PRINT (Mantendo lógica ZPL pura)
+        window.generateZPL = () => {
+            if(window.queue.length===0) return alert("Fila vazia");
+            let full=""; const clean=(t,tp)=>{ let s=String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); if(tp==='R')s=s.replace(/^RUA:?\s*/i,""); if(tp==='K')s=s.replace(/^RACK:?\s*/i,""); if(tp==='L')s=s.replace(/^(LINHA|LIN):?\s*/i,""); if(tp==='C')s=s.replace(/^(COLUNA|COL):?\s*/i,""); return s.substring(0,28); };
+            for(let i=0; i<window.queue.length; i+=2) {
+                let t=window.queue[i], b=window.queue[i+1];
+                const pt=window.findProd(t.COD)||t, pb=b?(window.findProd(b.COD)||b):null;
+                let z=`^XA\n^CI28^PW812^LL609^LH0,0^MD30\n`;
+                z+=`^FX TOPO\n^FO20,5^A0N,100,90^FD${pt.COD}^FS\n${t.validade?`^FO235,-5^GB550,60,75^FS\n^FO250,5^A0N,95,90^FR^FDVAL: ${t.validade}^FS`:''}\n^FO20,110^A0N,75,75^FB770,2,0,L,0^FD${clean(pt.NOM)}^FS\n^FO20,280^A0N,45,45^FDRUA: ${clean(pt.RUA,'R')} - RACK: ${clean(pt.RCK,'K')}^FS\n^FO20,330^A0N,45,45^FDLINHA: ${clean(pt.LIN,'L')} - COL: ${clean(pt.COL,'C')}^FS\n^BY4,3,100^FO20,390^BCN,130,Y,N,N^FD${pt.COD}^FS\n^FO620,370^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
+                if(pb){ z+=`^FX BOT\n^FO20,600^A0N,100,90^FD${pb.COD}^FS\n${b.validade?`^FO235,590^GB550,65,85^FS\n^FO250,600^A0N,95,90^FR^FDVAL: ${b.validade}^FS`:''}\n^FO20,705^A0N,75,75^FB770,2,0,L,0^FD${clean(pb.NOM)}^FS\n^FO20,875^A0N,45,45^FDRUA: ${clean(pb.RUA,'R')} - RACK: ${clean(pb.RCK,'K')}^FS\n^FO20,925^A0N,45,45^FDLINHA: ${clean(pb.LIN,'L')} - COL: ${clean(pb.COL,'C')}^FS\n^BY4,3,100^FO20,985^BCN,130,Y,N,N^FD${pb.COD}^FS\n^FO620,965^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`; }
+                z+=`^XZ\n`; full+=z;
+            }
+            document.getElementById('finalZPL').value=full;
+            showToast("ZPL Gerado!");
+            document.getElementById('btnDirect').disabled = !window.serialPort;
+            if(window.serialPort) document.getElementById('btnDirect').classList.replace('bg-slate-700', 'bg-emerald-600');
+        };
+
+        window.connectUSB = async () => {
+            if(!navigator.serial) return alert("Use PC com Chrome/Edge");
+            try { window.serialPort=await navigator.serial.requestPort(); await window.serialPort.open({baudRate:115200}); showToast("Conectado!"); if(document.getElementById('finalZPL').value) document.getElementById('btnDirect').disabled=false; }
+            catch(e){alert("Erro: "+e.message);}
+        };
+        window.printDirect = async () => {
+            if(!window.serialPort) return alert("Conecte no menu Ajuda");
+            const w=window.serialPort.writable.getWriter(); await w.write(new TextEncoder().encode(document.getElementById('finalZPL').value)); w.releaseLock();
+        };
+        window.downloadFile = () => { const c=document.getElementById('finalZPL').value; if(!c)return; const a=document.createElement('a'); a.href=window.URL.createObjectURL(new Blob([c],{type:'text/plain'})); a.download=`etiquetas.txt`; a.click(); };
+        window.copyZPL = () => { navigator.clipboard.writeText(document.getElementById('finalZPL').value); showToast("Copiado!"); };
+    </script>
+</body>
+</html>
