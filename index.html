@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZPL Master | Fix Upload</title>
+    <title>ZPL Master | Nomes Visíveis</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,22 +21,28 @@
         :root { --accent: #3b82f6; }
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; overflow-x: hidden; }
         
-        .glass-panel { background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); }
-        .input-std { background: #1e293b; border: 1px solid #334155; color: white; outline: none; font-family: 'JetBrains Mono', monospace; width: 100%; padding: 12px; border-radius: 8px; font-size: 1.1rem; }
-        .input-std:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
-        
-        .btn-action { width: 100%; padding: 14px; border-radius: 8px; font-weight: 800; text-transform: uppercase; transition: transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
-        .btn-action:active { transform: scale(0.96); }
-        
-        /* Loader Overlay */
+        .glass-panel { background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); transition: all 0.3s ease; }
+        .input-std { background: #1e293b; border: 1px solid #334155; color: white; transition: all 0.2s; outline: none; font-family: 'JetBrains Mono', monospace; width: 100%; padding: 12px; border-radius: 8px; font-size: 1.1rem; }
+        .input-std:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3); }
         .loader-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
         .loader-overlay.hide { display: none; }
-
+        
         /* Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        /* Melhoria na Tabela */
+        table { border-collapse: separate; border-spacing: 0; }
+        th { background-color: #1e293b; position: sticky; top: 0; z-index: 10; padding: 12px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; border-bottom: 1px solid #334155; }
+        td { padding: 12px; border-bottom: 1px solid #334155; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: rgba(59, 130, 246, 0.1); }
     </style>
+
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { darkbg: '#0f172a', success: '#10b981', danger: '#ef4444', warning: '#f59e0b' } } } }
+    </script>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center pt-10 pb-4 px-4 relative">
 
@@ -46,14 +52,14 @@
     </div>
 
     <!-- APP PRINCIPAL -->
-    <div class="w-full max-w-6xl pb-10 mt-6">
+    <div id="appContent" class="w-full max-w-6xl pb-10 mt-6">
         
-        <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 mt-8">
             <div class="text-center md:text-left">
                 <h1 class="text-3xl font-extrabold text-white tracking-tight">
                     <i class="fa-solid fa-fire text-orange-500 mr-2"></i>ZPL <span class="text-blue-500">Master</span>
                 </h1>
-                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Sincronização em Tempo Real</p>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Nomes Sincronizados</p>
             </div>
             <div class="flex items-center gap-3">
                  <button onclick="window.location.reload()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2">
@@ -68,12 +74,7 @@
             <div class="lg:col-span-5 space-y-6">
                 
                 <!-- 1. CARREGAR EXCEL -->
-                <section class="glass-panel rounded-2xl p-6 relative overflow-hidden">
-                    <div id="uploadLoader" class="loader-overlay hide">
-                        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500 mb-2"></i>
-                        <p class="text-sm font-bold text-white">Lendo Planilha...</p>
-                    </div>
-
+                <section class="glass-panel rounded-2xl p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-sm font-bold text-white uppercase"><i class="fa-solid fa-database mr-2"></i> Base de Produtos</h2>
                         <span id="prodCount" class="bg-slate-800 text-slate-400 text-[10px] px-2 py-1 rounded">0 itens</span>
@@ -83,11 +84,15 @@
                         <div class="text-center">
                             <i class="fa-solid fa-file-excel text-2xl text-green-500 mb-2 group-hover:scale-110 transition-transform"></i>
                             <p class="text-xs text-slate-300 font-bold">Carregar Planilha</p>
-                            <p class="text-[10px] text-slate-500">Colunas: A, B, E, F, G, H</p>
+                            <p class="text-[10px] text-slate-500">Obrigatório no celular para identificar</p>
                         </div>
-                        <!-- CORREÇÃO: onchange inline removido para usar listener mais robusto -->
                         <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden">
                     </label>
+                    <div class="mt-2 text-center">
+                        <button onclick="window.loadFromCloud()" class="text-[10px] text-blue-400 underline hover:text-blue-300">
+                            Ou clique aqui para usar a Nuvem
+                        </button>
+                    </div>
                 </section>
 
                 <!-- 2. MODOS DE OPERAÇÃO -->
@@ -102,8 +107,8 @@
                     <!-- BLOQUEIO -->
                     <div id="lockScreen" class="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-center p-4">
                         <i class="fa-solid fa-lock text-3xl text-slate-600 mb-2"></i>
-                        <p class="text-sm text-slate-300 font-bold">Carregue o Excel</p>
-                        <p class="text-[10px] text-slate-500">Para começar a bipar</p>
+                        <p class="text-sm text-slate-300 font-bold">Carregue o Excel ou Nuvem</p>
+                        <p class="text-[10px] text-slate-500">Para identificar os nomes</p>
                     </div>
 
                     <!-- MODO VALIDADE -->
@@ -159,22 +164,24 @@
                         </button>
                     </div>
 
+                    <!-- Tabela -->
                     <div class="flex-grow overflow-y-auto bg-slate-900/50 rounded-xl border border-slate-700/50 relative h-64">
                         <table class="w-full text-left text-sm text-slate-400">
                             <thead class="bg-slate-800 text-xs uppercase font-bold text-slate-300 sticky top-0 z-10">
                                 <tr>
-                                    <th class="p-3 w-10">#</th>
-                                    <th class="p-3">Produto</th>
-                                    <th class="p-3 text-center">Validade</th>
-                                    <th class="p-3 text-right"></th>
+                                    <th class="w-10">#</th>
+                                    <th>Produto (Nome)</th>
+                                    <th class="text-center w-24">Validade</th>
+                                    <th class="text-right w-16"></th>
                                 </tr>
                             </thead>
                             <tbody id="queueTable" class="divide-y divide-slate-700/50">
-                                <tr><td colspan="4" class="p-10 text-center text-slate-600 italic">Aguardando itens...</td></tr>
+                                <tr><td colspan="4" class="p-10 text-center text-slate-600 italic">Carregando fila...</td></tr>
                             </tbody>
                         </table>
                     </div>
 
+                    <!-- Ações -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
                         <button onclick="window.generateZPL()" class="col-span-2 md:col-span-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg flex justify-center items-center gap-2 active:scale-95 transition">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar
@@ -215,6 +222,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // CONFIGURAÇÃO FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyB1DaTOer5_cZ-JT15FlZGapNV1nUDrhmE",
             authDomain: "acai-delibery.firebaseapp.com",
@@ -230,9 +238,11 @@
         const db = getFirestore(app);
         const queueRef = collection(db, "print_queue");
 
+        // GLOBAL VARS
         window.inventory = [];
         window.queue = [];
         window.serialPort = null;
+        let currentMode = 'validade';
 
         // INIT STATUS
         const statusBox = document.getElementById('statusBox');
@@ -241,120 +251,88 @@
         statusBox.innerHTML = '<i class="fa-solid fa-fire"></i> FIREBASE CONECTADO';
         setTimeout(() => statusBox.classList.add('hidden'), 2000);
 
-        // REALTIME SYNC
+        // REALTIME SYNC (LEITURA DA FILA)
         const qQueue = query(queueRef, orderBy("created_at"));
         
         onSnapshot(qQueue, (snapshot) => {
             window.queue = [];
             snapshot.forEach((doc) => {
                 const d = doc.data();
+                
+                // Tenta achar na memória local para ter dados completos
+                const localP = window.findProd(d.codigo);
+                
+                // NOME VISÍVEL: Prioriza o que já foi salvo na fila (tempName), 
+                // para não depender do Excel local no PC de impressão.
+                const displayName = d.tempName || (localP ? localP.NOM : 'Aguardando Dados...');
+                
                 window.queue.push({
                     id: doc.id,
                     COD: d.codigo,
                     validade: d.validade,
-                    NOM: d.tempName || '...',
-                    fullData: d.fullData
+                    NOM: displayName, 
+                    fullData: d.fullData || localP // Dados para ZPL
                 });
             });
             window.updateUI();
         });
 
-        // 1. UPLOAD EXCEL (CORREÇÃO DE LEITURA)
-        const fileInput = document.getElementById('fileInput');
-        
-        fileInput.addEventListener('change', async (e) => {
-            const f = e.target.files[0];
-            if (!f) return;
+        // --- DATA FUNCTIONS ---
+        // Salvar Excel na Nuvem (Opcional, mas bom para backup)
+        window.saveToCloud = async () => {
+            if(window.inventory.length === 0) return alert("Carregue Excel!");
+            if(!confirm("Salvar na nuvem?")) return;
             
+            // Delete old
+            const q = await getDocs(collection(db, "products"));
+            const batchDel = writeBatch(db);
+            q.forEach((doc) => { batchDel.delete(doc.ref); });
+            await batchDel.commit();
+
+            // Insert new (Limitado para performance)
+            const batchAdd = writeBatch(db);
+            window.inventory.slice(0, 480).forEach((item) => { 
+                const ref = doc(collection(db, "products"));
+                batchAdd.set(ref, item);
+            });
+            await batchAdd.commit();
+            window.showToast("Salvo no Firebase!");
+        };
+
+        window.loadFromCloud = async () => {
             document.getElementById('uploadLoader').classList.remove('hide');
-            
-            // Usando FileReader para compatibilidade
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const sheetName = workbook.SheetNames[0];
-                    const sheet = workbook.Sheets[sheetName];
-                    const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
-
-                    window.inventory = json.slice(1).map(row => {
-                        if (!row[0]) return null;
-                        const c = (v) => String(v || "").trim().toUpperCase();
-                        return {
-                            COD: c(row[0]), NOM: c(row[1]),
-                            RUA: c(row[4]), RCK: c(row[5]),
-                            LIN: c(row[6]), COL: c(row[7])
-                        };
-                    }).filter(item => item !== null);
-
+            try {
+                const q = await getDocs(collection(db, "products"));
+                window.inventory = [];
+                q.forEach((doc) => { window.inventory.push(doc.data()); });
+                
+                if(window.inventory.length > 0) {
                     document.getElementById('lockScreen').classList.add('hidden');
-                    document.getElementById('prodCount').innerText = `${window.inventory.length} produtos carregados`;
-                    document.getElementById('prodCount').classList.replace('text-slate-400', 'text-emerald-400');
-                    document.getElementById('prodCount').classList.replace('bg-slate-800', 'bg-emerald-900');
-                    
-                    window.showToast("Excel Carregado com Sucesso!");
-                } catch(err) {
-                    alert("Erro ao ler arquivo: " + err.message);
-                } finally {
-                    document.getElementById('uploadLoader').classList.add('hide');
-                }
-            };
-            
-            reader.readAsArrayBuffer(f);
-            // Reset input value to allow reloading same file
-            fileInput.value = "";
-        });
-
-        // --- CORE FUNCTIONS (Mesmas da versão V14.0) ---
-        // (Replicando lógica de adicionar e gerar ZPL que já funcionava)
-
-        window.findProd = (c) => { 
-            let f=window.inventory.find(i=>i.COD==c); 
-            if(!f) try{let n=parseInt(c); if(!isNaN(n))f=window.inventory.find(i=>parseInt(i.COD)===n)}catch(e){} 
-            return f; 
-        };
-        
-        window.extractEAN = (v) => { v=v.replace(/\D/g,''); return v.length>=12 ? v.slice(-6,-1) : v; };
-        window.maskDate = (el) => { let v=el.value.replace(/\D/g,''); if(v.length>2)v=v.substring(0,2)+'/'+v.substring(2,6); el.value=v; };
-        
-        window.checkCode = (el, tid) => {
-            let v=el.value.replace(/\D/g,''), fv=v; 
-            if(v.length>=12) fv=window.extractEAN(v);
-            
-            const p=window.findProd(fv); 
-            const prev=document.getElementById(tid);
-            
-            if(p){ 
-                el.value=fv; 
-                prev.innerText=p.NOM; 
-                if(tid==='valPreview'){ document.getElementById('dateContainer').classList.remove('hidden'); setTimeout(()=>document.getElementById('valDate').focus(),100); } 
-            }
-            else prev.innerText=v.length>3?"Não encontrado":"";
-        };
-        
-        window.checkEndCode = (el) => {
-            let v=el.value.replace(/\D/g,''), fv=v; 
-            if(v.length>=12) fv=window.extractEAN(v);
-            const p=window.findProd(fv); 
-            const prev=document.getElementById('endPreview');
-            if(p) prev.innerText=p.NOM; else prev.innerText=v.length>3?"Não encontrado":"";
+                    document.getElementById('prodCount').innerText = `${window.inventory.length} itens (Nuvem)`;
+                    window.updateUI(); 
+                } else alert("Banco vazio.");
+            } catch(e) { alert("Erro ao baixar"); }
+            document.getElementById('uploadLoader').classList.add('hide');
         };
 
+        // --- QUEUE ACTIONS ---
         window.addItemVal = async () => {
             const c = document.getElementById('valCode').value;
             const v = document.getElementById('valDate').value;
-            if(!c) return alert("Bipe o código!");
             if(v.length < 7) return alert("Data inválida");
-            
             const prod = window.findProd(c);
+            
+            // Salva NOME e DADOS COMPLETOS na fila para garantir visualização em outros PCs
             const pName = prod ? prod.NOM : 'Produto s/ Cadastro';
             const pData = prod || { NOM: pName, RUA: '', RCK: '', LIN: '', COL: '' };
 
             try {
                 await addDoc(queueRef, {
-                    codigo: c, validade: v, tempName: pName, fullData: pData, created_at: Date.now()
+                    codigo: c,
+                    validade: v,
+                    tempName: pName, // Garante que o nome apareça na lista
+                    fullData: pData, // Garante que a etiqueta saia completa
+                    created_at: Date.now()
                 });
                 
                 document.getElementById('valCode').value = "";
@@ -363,13 +341,11 @@
                 document.getElementById('dateContainer').classList.add('hidden');
                 document.getElementById('valCode').focus();
                 window.showToast("Adicionado!");
-            } catch (err) { alert("Erro ao salvar: " + err.message); }
+            } catch (err) { alert("Erro: " + err.message); }
         };
 
         window.addItemEnd = async () => {
             const raw = document.getElementById('endCode').value;
-            if(!raw) return alert("Bipe o código!");
-            
             const c = window.extractEAN(raw);
             const prod = window.findProd(c);
             const pName = prod ? prod.NOM : 'Produto s/ Cadastro';
@@ -382,28 +358,69 @@
                 document.getElementById('endCode').value = "";
                 document.getElementById('endCode').focus();
                 window.showToast("Adicionado!");
-            } catch (err) { alert("Erro ao salvar: " + err.message); }
+            } catch (err) { alert("Erro: " + err.message); }
         };
 
         window.addListEnd = async () => {
              const l = document.getElementById('endList').value.split(/[\n,;]+/).map(x=>window.extractEAN(x)).filter(x=>x);
-             if(l.length === 0) return alert("Lista vazia");
              const batch = writeBatch(db);
              let c=0;
              l.forEach(code => {
-                 const ref = doc(queueRef);
                  const p = window.findProd(code);
                  const pName = p ? p.NOM : 'Produto s/ Cadastro';
                  const pData = p || { NOM: pName, RUA: '', RCK: '', LIN: '', COL: '' };
+                 const ref = doc(queueRef);
                  batch.set(ref, { codigo: code, validade: "", tempName: pName, fullData: pData, created_at: Date.now() + c });
                  c++;
              });
              await batch.commit();
-             document.getElementById('endList').value=""; window.showToast(`${c} itens enviados!`);
+             document.getElementById('endList').value=""; 
+             window.showToast(`${c} itens enviados!`);
         };
 
         window.removeFromQueue = async (id) => { await deleteDoc(doc(db, "print_queue", id)); };
-        window.clearQueue = async () => { if(confirm("Limpar?")) { const q = await getDocs(queueRef); const b = writeBatch(db); q.forEach((d) => b.delete(d.ref)); await b.commit(); window.showToast("Fila Limpa"); } };
+        
+        window.clearQueue = async () => {
+            if(!confirm("Limpar?")) return;
+            const q = await getDocs(queueRef);
+            const batch = writeBatch(db);
+            q.forEach((d) => batch.delete(d.ref));
+            await batch.commit();
+            window.showToast("Fila Limpa");
+        };
+
+        // EXCEL PARSER
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const f = e.target.files[0]; if(!f) return;
+            document.getElementById('uploadLoader').classList.remove('hide');
+            setTimeout(async()=>{ try { const b=await f.arrayBuffer(); const wb=XLSX.read(b,{type:'array'}); const r=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1}); 
+            window.inventory=r.slice(1).map(x=>({COD:String(x[0]||"").trim().toUpperCase(),NOM:String(x[1]||"").trim().toUpperCase(),RUA:String(x[4]||"").trim(),RCK:String(x[5]||"").trim(),LIN:String(x[6]||"").trim(),COL:String(x[7]||"").trim()})).filter(x=>x.COD); 
+            document.getElementById('prodCount').innerText = `${window.inventory.length} produtos`;
+            document.getElementById('lockScreen').classList.add('hidden');
+            window.showToast("Excel Carregado!");
+            } catch(err){ alert(err.message); } finally{ document.getElementById('uploadLoader').classList.add('hide'); e.target.value=''; } },500);
+        });
+
+        // HELPERS
+        window.findProd = (c) => { let f=window.inventory.find(i=>i.COD==c); if(!f)try{let n=parseInt(c); if(!isNaN(n))f=window.inventory.find(i=>parseInt(i.COD)===n)}catch(e){} return f; };
+        window.extractEAN = (v) => { v=v.replace(/\D/g,''); return v.length>=12 ? v.slice(-6,-1) : v; };
+        window.maskDate = (el) => { let v=el.value.replace(/\D/g,''); if(v.length>2)v=v.substring(0,2)+'/'+v.substring(2,6); el.value=v; };
+        
+        window.checkCode = (el, tid) => {
+            let v=el.value.replace(/\D/g,''), fv=v; if(v.length>=12)fv=window.extractEAN(v);
+            const p=window.findProd(fv); const prev=document.getElementById(tid);
+            if(p){ el.value=fv; prev.innerText=p.NOM; prev.classList.replace('text-slate-500', 'text-emerald-400'); if(tid==='valPreview'){ document.getElementById('dateContainer').classList.remove('hidden'); setTimeout(()=>document.getElementById('valDate').focus(),100); } }
+            else { prev.innerText="Sem cadastro (será adicionado)"; prev.classList.replace('text-emerald-400', 'text-slate-500'); }
+        };
+        
+        window.checkEndCode = (el) => {
+            let v=el.value.replace(/\D/g,''), fv=v; if(v.length>=12)fv=window.extractEAN(v);
+            const p=window.findProd(fv); const prev=document.getElementById('endPreview');
+            if(p) prev.innerText=p.NOM; else prev.innerText="Sem cadastro (será adicionado)";
+        };
+
+        window.handleEnter = (e) => { if(e.key==="Enter") window.addItemVal(); };
+        window.handleEnterEnd = (e) => { if(e.key==="Enter") window.addItemEnd(); };
 
         window.updateUI = () => {
             const tb=document.getElementById('queueTable'); 
@@ -429,15 +446,27 @@
             if(window.serialPort && window.queue.length>0) { document.getElementById('btnDirect').disabled=false; document.getElementById('btnDirect').classList.replace('bg-slate-700','bg-emerald-600'); document.getElementById('btnDirect').classList.remove('cursor-not-allowed'); }
         };
 
+        window.setMode = (m) => {
+            document.getElementById('formValidade').classList.toggle('hidden', m!=='validade');
+            document.getElementById('formEndereco').classList.toggle('hidden', m!=='endereco');
+            const bV=document.getElementById('btnVal'), bE=document.getElementById('btnEnd');
+            if(m==='validade'){ bV.className="flex-1 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-lg transition"; bE.className="flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition"; }
+            else { bE.className="flex-1 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-lg transition"; bV.className="flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition"; }
+            window.switchTab('unit');
+        };
+        window.switchTab = (t) => { if(t==='unit'){document.getElementById('singleEntry').classList.remove('hidden');document.getElementById('massEntry').classList.add('hidden');document.getElementById('endCode').focus();}else{document.getElementById('singleEntry').classList.add('hidden');document.getElementById('massEntry').classList.remove('hidden');document.getElementById('endList').focus();} };
+        window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
+        window.showToast = (msg) => { const t = document.getElementById('toast'); t.querySelector('span').innerText = msg; t.classList.remove('translate-y-10', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-10', 'opacity-0'), 2500); };
+
+        // ZPL GENERATION
         window.generateZPL = () => {
             if(window.queue.length===0) return alert("Fila vazia");
-            let fullCode=""; const clean=(t,tp)=>{ let s=String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); if(tp==='R')s=s.replace(/^RUA:?\s*/i,""); if(tp==='K')s=s.replace(/^RACK:?\s*/i,""); if(tp==='L')s=s.replace(/^(LINHA|LIN):?\s*/i,""); if(tp==='C')s=s.replace(/^(COLUNA|COL):?\s*/i,""); return s.trim().substring(0, 28); };
-            
+            let fullCode=""; const clean=(t,tp)=>{ let s=String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); if(tp==='R')s=s.replace(/^RUA:?\s*/i,""); if(tp==='K')s=s.replace(/^RACK:?\s*/i,""); if(tp==='L')s=s.replace(/^(LINHA|LIN):?\s*/i,""); if(tp==='C')s=s.replace(/^(COLUNA|COL):?\s*/i,""); return s.substring(0, 28); };
             for(let i=0; i<window.queue.length; i+=2) {
-                const t=window.queue[i], b=window.queue[i+1];
-                // Usa fullData salvo no Firebase
-                const pt=t.fullData || {NOM:t.NOM, RUA:'', RCK:'', LIN:'', COL:''};
-                const pb=b?(b.fullData || {NOM:b.NOM, RUA:'', RCK:'', LIN:'', COL:''}):null;
+                let t=window.queue[i], b=window.queue[i+1];
+                // DATA PRIORITY: Firebase FullData -> Local Excel -> Empty
+                const pt = t.fullData || (window.findProd(t.COD) || { NOM: t.NOM, RUA: '', RCK: '', LIN: '', COL: '' });
+                const pb = b ? (b.fullData || (window.findProd(b.COD) || { NOM: b.NOM, RUA: '', RCK: '', LIN: '', COL: '' })) : null;
 
                 let z=`^XA\n^CI28^PW812^LL609^LH0,0^MD30\n`;
                 z+=`^FX TOPO\n^FO20,5^A0N,100,90^FD${t.COD}^FS\n${t.validade?`^FO235,-5^GB550,60,75^FS\n^FO250,5^A0N,95,90^FR^FDVAL: ${t.validade}^FS`:''}\n^FO20,110^A0N,75,75^FB770,2,0,L,0^FD${clean(pt.NOM)}^FS\n^FO20,280^A0N,45,45^FDRUA: ${clean(pt.RUA,'R')} - RACK: ${clean(pt.RCK,'K')}^FS\n^FO20,330^A0N,45,45^FDLINHA: ${clean(pt.LIN,'L')} - COL: ${clean(pt.COL,'C')}^FS\n^BY4,3,100^FO20,390^BCN,130,Y,N,N^FD${t.COD}^FS\n^FO640,370^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
@@ -445,29 +474,13 @@
                 z+=`^XZ\n`; fullCode+=z;
             }
             document.getElementById('finalZPL').value=fullCode; document.getElementById('finalZPL').classList.remove('hidden'); window.showToast("ZPL Gerado!");
-            if(window.serialPort) { document.getElementById('btnDirect').disabled=false; document.getElementById('btnDirect').classList.replace('bg-slate-700','bg-emerald-600'); document.getElementById('btnDirect').classList.remove('cursor-not-allowed'); }
+            if(window.serialPort) { const b=document.getElementById('btnDirect'); b.disabled=false; b.classList.replace('bg-slate-700','bg-emerald-600'); b.classList.remove('cursor-not-allowed'); }
         };
 
-        // --- USB & DOWNLOAD ---
         window.connectUSB = async () => { if(!navigator.serial)return alert("Use PC"); try{window.serialPort=await navigator.serial.requestPort(); await window.serialPort.open({baudRate:115200}); window.showToast("Conectado!"); window.updateUI();} catch(e){alert("Erro: "+e.message);} };
         window.printDirect = async () => { if(!window.serialPort)return; const w=window.serialPort.writable.getWriter(); await w.write(new TextEncoder().encode(document.getElementById('finalZPL').value)); w.releaseLock(); window.showToast("Enviado!"); };
         window.downloadFile = () => { const c=document.getElementById('finalZPL').value; if(!c)return; const a=document.createElement('a'); a.href=window.URL.createObjectURL(new Blob([c],{type:'text/plain'})); a.download=`etiquetas.txt`; a.click(); };
-        window.copyZPL = () => { navigator.clipboard.writeText(document.getElementById('finalZPL').value); window.showToast("Copiado!"); };
-        
-        // UTILS
-        window.setMode = (m) => {
-            document.getElementById('formValidade').classList.toggle('hidden', m!=='validade');
-            document.getElementById('formEndereco').classList.toggle('hidden', m!=='endereco');
-            const bV=document.getElementById('btnVal'), bE=document.getElementById('btnEnd');
-            if(m==='validade'){bV.className="flex-1 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-lg transition"; bE.className="flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition";}
-            else{bE.className="flex-1 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-lg transition"; bV.className="flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition";}
-            window.switchTab('unit');
-        };
-        window.switchTab = (t) => { if(t==='unit'){document.getElementById('singleEntry').classList.remove('hidden');document.getElementById('massEntry').classList.add('hidden');document.getElementById('endCode').focus();}else{document.getElementById('singleEntry').classList.add('hidden');document.getElementById('massEntry').classList.remove('hidden');document.getElementById('endList').focus();} };
-        window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
-        window.showToast = (msg) => { const t = document.getElementById('toast'); t.querySelector('span').innerText = msg; t.classList.remove('translate-y-10', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-10', 'opacity-0'), 2500); };
-        window.handleEnter = (e) => { if(e.key==="Enter") if(document.activeElement.id==='valCode')window.checkCode(document.getElementById('valCode'),'valPreview'); else window.addItemVal(); };
-        window.handleEnterEnd = (e) => { if(e.key==="Enter") window.addItemEnd(); };
+        window.copyZPL = () => { navigator.clipboard.writeText(document.getElementById('finalZPL').value).then(()=>showToast("Copiado!")); };
     </script>
 </body>
 </html>
