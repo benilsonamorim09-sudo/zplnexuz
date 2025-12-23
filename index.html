@@ -170,7 +170,7 @@
                 </section>
                 
                 <div class="text-center mt-4">
-                    <button onclick="window.connectUSB()" class="text-xs text-slate-500 underline hover:text-slate-300">Conectar Impressora USB (Chrome/Edge)</button>
+                    <button onclick="window.connectUSB()" class="text-xs text-slate-500 underline hover:text-slate-300">Conectar Impressora USB (Chrome/PC)</button>
                 </div>
             </div>
         </main>
@@ -196,7 +196,7 @@
         <i class="fa-solid fa-check-circle"></i> <span>Ação realizada!</span>
     </div>
 
-    <!-- FIREBASE & APP LOGIC -->
+    <!-- FIREBASE MODULE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -216,7 +216,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- GLOBAL VARIABLES (Window binding needed for modules) ---
+        // --- GLOBAL VARIABLES ---
         window.inventory = [];
         window.queue = [];
         window.serialPort = null;
@@ -226,7 +226,7 @@
         const statusBox = document.getElementById('statusBox');
         statusBox.classList.remove('bg-yellow-600');
         statusBox.classList.add('bg-emerald-600');
-        statusBox.innerHTML = '<i class="fa-solid fa-fire"></i> CONECTADO AO FIREBASE';
+        statusBox.innerHTML = '<i class="fa-solid fa-fire"></i> FIREBASE CONECTADO';
         setTimeout(() => statusBox.classList.add('hidden'), 2000);
 
         // --- REALTIME SYNC (THE MAGIC) ---
@@ -297,22 +297,32 @@
             const p = window.findProd(c);
             
             await addDoc(collection(db, "print_queue"), {
-                codigo: c, validade: v, tempName: p ? p.NOM : 'Desconhecido', created_at: Date.now()
+                codigo: c,
+                validade: v,
+                tempName: p ? p.NOM : 'Desconhecido',
+                created_at: Date.now()
             });
             
-            document.getElementById('valCode').value=""; document.getElementById('valDate').value="";
-            document.getElementById('valPreview').innerText=""; document.getElementById('dateContainer').classList.add('hidden');
+            // Reset UI
+            document.getElementById('valCode').value = "";
+            document.getElementById('valDate').value = "";
+            document.getElementById('valPreview').innerText = "";
+            document.getElementById('dateContainer').classList.add('hidden');
             document.getElementById('valCode').focus();
             window.showToast("Adicionado!");
         };
 
         window.addItemEnd = async () => {
             const c = window.extract(document.getElementById('endCode').value);
-            const p = window.findProd(c);
+            const prod = window.findProd(c);
             await addDoc(collection(db, "print_queue"), {
-                codigo: c, validade: "", tempName: p ? p.NOM : 'Desconhecido', created_at: Date.now()
+                codigo: c,
+                validade: "",
+                tempName: prod ? prod.NOM : 'Desconhecido',
+                created_at: Date.now()
             });
-            document.getElementById('endCode').value=""; document.getElementById('endCode').focus();
+            document.getElementById('endCode').value = "";
+            document.getElementById('endCode').focus();
             window.showToast("Adicionado!");
         };
 
@@ -332,8 +342,10 @@
              else alert("Nenhum válido");
         };
 
-        window.removeFromQueue = async (id) => { await deleteDoc(doc(db, "print_queue", id)); };
-        
+        window.removeFromQueue = async (id) => {
+            await deleteDoc(doc(db, "print_queue", id));
+        };
+
         window.clearQueue = async () => {
             if(!confirm("Limpar?")) return;
             const q = await getDocs(collection(db, "print_queue"));
@@ -343,7 +355,7 @@
             window.showToast("Fila Limpa");
         };
 
-        // --- EXCEL & UTILS ---
+        // EXCEL PARSER
         document.getElementById('fileInput').addEventListener('change', async (e) => {
             const f = e.target.files[0]; if(!f) return;
             document.getElementById('uploadLoader').classList.remove('hide');
@@ -352,7 +364,7 @@
             window.updateDataInfo("Excel", window.inventory.length); document.getElementById('btnSaveCloud').classList.remove('hidden'); window.updateUI(); } catch(err){ alert(err.message); } finally{ document.getElementById('uploadLoader').classList.add('hide'); e.target.value=''; } },600);
         });
 
-        // BINDING HELPERS TO WINDOW
+        // --- HELPERS ---
         window.updateDataInfo = (s, c) => {
             document.getElementById('lockScreen').classList.add('hidden'); document.getElementById('sourceSelection').classList.add('hidden'); 
             document.getElementById('dataLoaded').classList.remove('hidden'); document.getElementById('rowCount').innerText = `${c} Produtos`;
@@ -367,25 +379,40 @@
         window.maskDate = (el) => { let v=el.value.replace(/\D/g,''); if(v.length>2)v=v.substring(0,2)+'/'+v.substring(2,6); el.value=v; };
         
         window.checkCode = (el, prevId) => {
-            let v=el.value.replace(/\D/g,''), fV=v; if(v.length>=12)fV=window.extract(v); const p=window.findProd(fV); const prev=document.getElementById(prevId);
-            if(p){ el.value=fV; prev.innerText=p.NOM; if(prevId==='valName'){ document.getElementById('dateContainer').classList.remove('hidden'); setTimeout(()=>document.getElementById('valDate').focus(),100); } }
-            else prev.innerText=v.length>3?"Não encontrado":"";
+            let v = el.value.replace(/\D/g,''); let finalVal = v;
+            if(v.length>=12) finalVal = window.extract(v);
+            const p = window.findProd(finalVal);
+            const prev = document.getElementById(prevId);
+            if(p) {
+                el.value = finalVal; prev.innerText=p.NOM;
+                if(prevId==='valName'){ document.getElementById('dateContainer').classList.remove('hidden'); setTimeout(()=>document.getElementById('valDate').focus(),100); }
+            } else { prev.innerText=v.length>3?"Não encontrado":""; }
         };
-        
-        window.handleEnter = (e) => { if(e.key==="Enter"){ if(document.activeElement.id==='valCode')window.checkCode(document.getElementById('valCode'),'valPreview'); else window.addItemVal(); } };
+
+        window.handleEnter = (e) => { if(e.key==="Enter") { if(document.activeElement.id==='valCode')window.checkCode(document.getElementById('valCode'),'valPreview'); else window.addItemVal(); } };
         window.handleEnterEnd = (e) => { if(e.key==="Enter") window.addItemEnd(); };
 
         window.updateUI = () => {
-            const tb=document.getElementById('queueTable'); document.getElementById('queueCount').innerText=window.queue.length;
-            document.getElementById('finalZPL').classList.add('hidden');
-            ['btnDownload','btnCopy','btnDirect'].forEach(id=>{ const b=document.getElementById(id); b.disabled=true; b.classList.add('bg-slate-700','cursor-not-allowed'); b.classList.remove('bg-success','bg-accent','bg-emerald-600'); });
+            const tb=document.getElementById('queueTable'); 
+            document.getElementById('queueCount').innerText=window.queue.length;
             if(window.queue.length===0) return tb.innerHTML='<tr><td colspan="4" class="p-8 text-center italic opacity-50">Vazia</td></tr>';
-            tb.innerHTML = window.queue.map((i,idx)=> `<tr class="border-b border-slate-700 hover:bg-slate-800"><td class="p-3 text-slate-500 text-xs">${idx+1}</td><td class="p-3"><div class="font-bold text-white text-xs">${i.COD}</div><div class="text-[10px] truncate w-32 text-slate-400">${i.NOM}</div></td><td class="p-3 text-emerald-400 text-xs text-center">${i.validade||'-'}</td><td class="p-3 text-right"><button onclick="removeFromQueue('${i.id}')" class="text-red-400 hover:text-white"><i class="fa-solid fa-times"></i></button></td></tr>`).join('');
-            if(window.queue.length>0) { 
-                document.getElementById('btnDownload').disabled=false; document.getElementById('btnDownload').classList.replace('bg-slate-700','bg-blue-600'); document.getElementById('btnDownload').classList.remove('cursor-not-allowed');
-                document.getElementById('btnCopy').disabled=false; document.getElementById('btnCopy').classList.replace('bg-slate-700','bg-slate-600'); document.getElementById('btnCopy').classList.remove('cursor-not-allowed');
+            
+            tb.innerHTML = window.queue.map((i,idx)=> `
+                <tr class="border-b border-slate-700/50 hover:bg-slate-800/50 transition">
+                    <td class="p-3 font-mono text-slate-500 text-xs">${idx+1}</td>
+                    <td class="p-3"><div class="font-bold text-white text-xs">${i.COD}</div><div class="text-[10px] text-slate-400 truncate w-32">${i.NOM}</div></td>
+                    <td class="p-3 text-emerald-400 text-xs text-center">${i.validade||'-'}</td>
+                    <td class="p-3 text-right"><button onclick="removeFromQueue('${i.id}')" class="text-red-400 hover:text-white"><i class="fa-solid fa-times"></i></button></td>
+                </tr>`).join('');
+            
+            const hasItems = window.queue.length > 0;
+            ['btnDownload','btnCopy'].forEach(id => document.getElementById(id).disabled = !hasItems);
+             if(hasItems) {
+                document.getElementById('btnDownload').classList.remove('bg-slate-700');
+                document.getElementById('btnDownload').classList.add('bg-blue-600');
+                document.getElementById('btnCopy').classList.remove('bg-slate-700');
+                document.getElementById('btnCopy').classList.add('bg-slate-600');
             }
-            if(window.serialPort && window.queue.length>0) { document.getElementById('btnDirect').disabled=false; document.getElementById('btnDirect').classList.replace('bg-slate-700','bg-emerald-600'); document.getElementById('btnDirect').classList.remove('cursor-not-allowed'); }
         };
 
         // UI Toggles
@@ -393,31 +420,50 @@
             document.getElementById('formValidade').classList.toggle('hidden', m!=='validade');
             document.getElementById('formEndereco').classList.toggle('hidden', m!=='endereco');
             const bV=document.getElementById('tabVal'), bE=document.getElementById('tabEnd');
-            if(m==='validade'){ bV.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white transition"; bE.className="flex-1 py-2 text-xs font-bold rounded text-slate-400 transition"; }
-            else { bE.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white transition"; bV.className="flex-1 py-2 text-xs font-bold rounded text-slate-400 transition"; }
-            if(m==='endereco') { document.getElementById('endCode').focus(); } else { document.getElementById('valCode').focus(); }
+            if(m==='validade'){ bV.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white"; bE.className="flex-1 py-2 text-xs font-bold rounded text-slate-400"; }
+            else { bE.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white"; bV.className="flex-1 py-2 text-xs font-bold rounded text-slate-400"; }
         };
         window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
-        window.showToast = (msg) => { const t = document.getElementById('toast'); t.querySelector('span').innerText = msg; t.classList.remove('translate-y-10', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-10', 'opacity-0'), 2500); };
+        window.showToast = (msg) => {
+            const t = document.getElementById('toast');
+            t.querySelector('span').innerText = msg;
+            t.classList.remove('translate-y-10', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-y-10', 'opacity-0'), 2500);
+        };
 
-        // ZPL
+        // ZPL & PRINT (Mantendo lógica ZPL pura)
         window.generateZPL = () => {
-            if(window.queue.length===0) return alert("Vazia");
+            if(window.queue.length===0) return alert("Fila vazia");
             let full=""; const clean=(t,tp)=>{ let s=String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); if(tp==='R')s=s.replace(/^RUA:?\s*/i,""); if(tp==='K')s=s.replace(/^RACK:?\s*/i,""); if(tp==='L')s=s.replace(/^(LINHA|LIN):?\s*/i,""); if(tp==='C')s=s.replace(/^(COLUNA|COL):?\s*/i,""); return s.substring(0,28); };
             for(let i=0; i<window.queue.length; i+=2) {
-                let t=window.queue[i], b=window.queue[i+1]; const pt=window.findProd(t.COD)||t, pb=b?(window.findProd(b.COD)||b):null;
+                let t=window.queue[i], b=window.queue[i+1];
+                const pt=window.findProd(t.COD)||t, pb=b?(window.findProd(b.COD)||b):null;
                 let z=`^XA\n^CI28^PW812^LL609^LH0,0^MD30\n`;
                 z+=`^FX TOPO\n^FO20,5^A0N,100,90^FD${pt.COD}^FS\n${t.validade?`^FO235,-5^GB550,60,75^FS\n^FO250,5^A0N,95,90^FR^FDVAL: ${t.validade}^FS`:''}\n^FO20,110^A0N,75,75^FB770,2,0,L,0^FD${clean(pt.NOM)}^FS\n^FO20,280^A0N,45,45^FDRUA: ${clean(pt.RUA,'R')} - RACK: ${clean(pt.RCK,'K')}^FS\n^FO20,330^A0N,45,45^FDLINHA: ${clean(pt.LIN,'L')} - COL: ${clean(pt.COL,'C')}^FS\n^BY4,3,100^FO20,390^BCN,130,Y,N,N^FD${pt.COD}^FS\n^FO620,370^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
                 if(pb){ z+=`^FX BOT\n^FO20,600^A0N,100,90^FD${pb.COD}^FS\n${b.validade?`^FO235,590^GB550,65,85^FS\n^FO250,600^A0N,95,90^FR^FDVAL: ${b.validade}^FS`:''}\n^FO20,705^A0N,75,75^FB770,2,0,L,0^FD${clean(pb.NOM)}^FS\n^FO20,875^A0N,45,45^FDRUA: ${clean(pb.RUA,'R')} - RACK: ${clean(pb.RCK,'K')}^FS\n^FO20,925^A0N,45,45^FDLINHA: ${clean(pb.LIN,'L')} - COL: ${clean(pb.COL,'C')}^FS\n^BY4,3,100^FO20,985^BCN,130,Y,N,N^FD${pb.COD}^FS\n^FO620,965^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`; }
                 z+=`^XZ\n`; full+=z;
             }
-            document.getElementById('finalZPL').value=full; document.getElementById('finalZPL').classList.remove('hidden'); window.showToast("ZPL Gerado!");
+            document.getElementById('finalZPL').value=full;
+            showToast("ZPL Gerado!");
+            document.getElementById('btnDirect').disabled = !window.serialPort;
+            if(window.serialPort) document.getElementById('btnDirect').classList.replace('bg-slate-700', 'bg-emerald-600');
         };
 
-        window.connectUSB = async () => { if(!navigator.serial)return alert("Use PC"); try{window.serialPort=await navigator.serial.requestPort(); await window.serialPort.open({baudRate:115200}); window.showToast("Conectado!"); window.updateUI();} catch(e){alert("Erro: "+e.message);} };
-        window.printDirect = async () => { if(!window.serialPort)return; const w=window.serialPort.writable.getWriter(); await w.write(new TextEncoder().encode(document.getElementById('finalZPL').value)); w.releaseLock(); window.showToast("Enviado!"); };
+        window.connectUSB = async () => {
+            if(!navigator.serial) return alert("Use PC com Chrome/Edge");
+            try { window.serialPort=await navigator.serial.requestPort(); await window.serialPort.open({baudRate:115200}); showToast("Conectado!"); if(document.getElementById('finalZPL').value) document.getElementById('btnDirect').disabled=false; }
+            catch(e){alert("Erro: "+e.message);}
+        };
+        window.printDirect = async () => {
+            if(!window.serialPort) return alert("Conecte no menu Ajuda");
+            const w=window.serialPort.writable.getWriter(); await w.write(new TextEncoder().encode(document.getElementById('finalZPL').value)); w.releaseLock();
+        };
         window.downloadFile = () => { const c=document.getElementById('finalZPL').value; if(!c)return; const a=document.createElement('a'); a.href=window.URL.createObjectURL(new Blob([c],{type:'text/plain'})); a.download=`etiquetas.txt`; a.click(); };
-        window.copyZPL = () => { navigator.clipboard.writeText(document.getElementById('finalZPL').value); window.showToast("Copiado!"); };
+        window.copyZPL = () => { navigator.clipboard.writeText(document.getElementById('finalZPL').value); showToast("Copiado!"); };
+
+        // Utils
+        window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
+        document.getElementById('uploadLoader').classList.add('hide'); // Remove loader when done
     </script>
 </body>
 </html>
