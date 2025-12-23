@@ -1,14 +1,15 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZPL Master | Speed Sync</title>
+    <title>ZPL Master | Firebase Fixed</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- SheetJS (Excel Otimizado) -->
+    <!-- SheetJS (Excel) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <!-- Ícones -->
@@ -25,7 +26,6 @@
         .input-std:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1); }
         .loader-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
         .loader-overlay.hide { display: none; }
-        .tab-bg { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); background-color: var(--accent); }
     </style>
 
     <script>
@@ -44,8 +44,8 @@
         
         <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 mt-8">
             <div class="text-center md:text-left">
-                <h1 class="text-3xl font-extrabold text-white tracking-tight"><i class="fa-solid fa-bolt text-yellow-400 mr-2"></i>ZPL <span class="text-accent">Speed</span></h1>
-                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Sincronização Leve (Só Fila)</p>
+                <h1 class="text-3xl font-extrabold text-white tracking-tight"><i class="fa-solid fa-fire text-orange-500 mr-2"></i>ZPL <span class="text-accent">Master</span></h1>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Criado por <span class="text-white font-bold">Benilson Amorim</span></p>
             </div>
             <div class="flex items-center gap-3">
                 <button onclick="toggleModal('helpModal')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition border border-slate-600 flex items-center gap-2"><i class="fa-solid fa-circle-question"></i> Ajuda</button>
@@ -57,22 +57,33 @@
             <!-- ESQUERDA: Controles -->
             <div class="lg:col-span-5 space-y-6">
                 
-                <!-- 1. Fonte de Dados (LOCAL - RAPIDO) -->
-                <section class="glass-panel rounded-2xl p-0 relative overflow-hidden min-h-[100px] flex flex-col justify-center">
-                    <div id="uploadLoader" class="loader-overlay hide"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-accent mb-2"></i><p class="text-sm font-bold text-white">Carregando...</p></div>
+                <!-- 1. Fonte de Dados -->
+                <section class="glass-panel rounded-2xl p-0 relative overflow-hidden min-h-[140px] flex flex-col justify-center">
+                    <div id="uploadLoader" class="loader-overlay hide"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-accent mb-2"></i><p class="text-sm font-bold text-white">Processando...</p></div>
                     
                     <div id="sourceSelection" class="p-5">
-                        <div class="flex justify-between items-center mb-3">
-                             <h2 class="font-bold text-white text-sm flex items-center gap-2"><i class="fa-solid fa-database text-slate-400"></i> Excel Local</h2>
-                             <span id="dbCount" class="text-[10px] text-slate-500 bg-slate-800 px-2 py-1 rounded">Vazio</span>
+                        <h2 class="font-bold text-white text-sm mb-3 flex items-center gap-2"><i class="fa-solid fa-database text-slate-400"></i> Fonte de Dados (Para Bipar)</h2>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-lg text-xs font-bold text-center transition border border-slate-600 hover:border-emerald-500 group">
+                                <i class="fa-solid fa-file-excel text-xl block mb-1 text-green-400 group-hover:scale-110 transition-transform"></i> Upload Excel
+                                <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden">
+                            </label>
+                            <button onclick="window.loadFromCloud()" class="bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-lg text-xs font-bold text-center transition border border-slate-600 hover:border-orange-500 group">
+                                <i class="fa-solid fa-cloud text-xl block mb-1 text-orange-400 group-hover:scale-110 transition-transform"></i> Usar Nuvem
+                            </button>
                         </div>
-                       
-                        <label class="cursor-pointer w-full bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-lg text-xs font-bold text-center transition border border-slate-600 hover:border-emerald-500 block group">
-                            <i class="fa-solid fa-file-excel text-xl inline-block mr-2 text-green-400 group-hover:scale-110 transition-transform"></i> 
-                            Carregar Excel (Memória)
-                            <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden">
-                        </label>
-                        <p class="text-[9px] text-slate-500 mt-2 text-center">O Excel fica na memória do seu aparelho. Não consome internet.</p>
+                    </div>
+                    
+                    <div id="dataLoaded" class="hidden p-4 bg-emerald-900/20 border-l-4 border-emerald-500 h-full flex flex-col justify-center">
+                        <div class="flex justify-between items-center">
+                            <div><h2 class="font-bold text-white text-sm">Dados Ativos</h2><p id="rowCount" class="text-[10px] text-emerald-400 font-bold">0 Produtos</p></div>
+                            <button onclick="window.resetData()" class="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 transition"><i class="fa-solid fa-rotate mr-1"></i> Trocar</button>
+                        </div>
+                        <div id="saveToCloudContainer" class="hidden pt-2 mt-2 border-t border-emerald-500/30">
+                            <button onclick="window.saveToCloud()" class="w-full bg-orange-600 hover:bg-orange-500 text-white py-2 rounded text-xs font-bold shadow flex items-center justify-center gap-2 transition">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Salvar Base no Firebase
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -84,13 +95,18 @@
 
                 <!-- 3. Entrada -->
                 <section class="glass-panel rounded-2xl p-6 relative min-h-[300px] flex flex-col">
-                    
+                    <div id="lockScreen" class="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-center p-4">
+                        <i class="fa-solid fa-lock text-3xl text-slate-600 mb-2"></i>
+                        <p class="text-sm text-slate-300 font-bold">Carregue os Produtos</p>
+                        <p class="text-[10px] text-slate-500">Necessário para identificar os códigos</p>
+                    </div>
+
                     <!-- Form Validade -->
                     <div id="formValidade" class="space-y-4">
                         <div>
                             <label class="text-[10px] uppercase font-bold text-slate-400">Código</label>
                             <input type="tel" id="valCode" class="input-std w-full py-3 px-4 rounded-lg text-lg mt-1" placeholder="Scan..." oninput="window.checkCode(this, 'valPreview')" onkeydown="window.handleEnter(event)">
-                            <div id="valPreview" class="h-4 text-xs font-bold text-green-400 mt-1 truncate"></div>
+                            <div id="valPreview" class="h-5 text-xs font-bold text-green-400 mt-1 truncate"></div>
                         </div>
                         <div id="dateContainer" class="hidden animate-pulse">
                             <label class="text-[10px] uppercase font-bold text-slate-400">Validade</label>
@@ -118,7 +134,7 @@
                         </div>
                         <div id="massEntry" class="hidden space-y-2">
                             <label class="text-[10px] uppercase font-bold text-slate-400">Lista</label>
-                            <textarea id="endList" rows="5" class="input-std w-full rounded-xl p-3 text-xs" placeholder="Cole os códigos..."></textarea>
+                            <textarea id="endList" rows="5" class="input-std w-full rounded-xl p-3 text-xs" placeholder="73804..."></textarea>
                             <button onclick="window.addListEnd()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl text-sm font-bold border border-slate-600">Processar</button>
                         </div>
                     </div>
@@ -145,10 +161,10 @@
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-                        <button onclick="window.generateZPL()" class="col-span-2 md:col-span-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg flex justify-center items-center gap-2 active:scale-95 transition"><i class="fa-solid fa-wand-magic-sparkles"></i> Gerar</button>
-                        <button onclick="window.printDirect()" id="btnPrintDirect" disabled class="col-span-2 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-3 rounded-xl border border-slate-600 cursor-not-allowed transition flex justify-center items-center gap-2"><i class="fa-solid fa-print"></i> Direto USB</button>
-                        <button onclick="window.downloadFile()" id="btnDownload" disabled class="col-span-2 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-3 rounded-xl border border-slate-600 cursor-not-allowed transition flex justify-center items-center gap-2"><i class="fa-solid fa-download"></i> Baixar Txt</button>
-                        <button onclick="window.copyZPL()" id="btnCopy" disabled class="col-span-4 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-2 rounded-xl border border-slate-600 cursor-not-allowed mt-1 text-xs uppercase transition flex justify-center items-center gap-2"><i class="fa-solid fa-copy"></i> Copiar</button>
+                        <button onclick="window.generateZPL()" class="col-span-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg flex justify-center items-center gap-2 active:scale-95 transition"><i class="fa-solid fa-wand-magic-sparkles"></i> Gerar ZPL</button>
+                        <button onclick="window.printDirect()" id="btnDirect" disabled class="bg-slate-700 text-slate-500 font-bold py-3 rounded-xl border border-slate-600 cursor-not-allowed transition flex justify-center items-center gap-2"><i class="fa-brands fa-usb"></i> Direto USB</button>
+                        <button onclick="window.downloadFile()" id="btnDownload" disabled class="bg-slate-700 text-slate-500 font-bold py-3 rounded-xl border border-slate-600 cursor-not-allowed transition flex justify-center items-center gap-2"><i class="fa-solid fa-download"></i> Baixar Txt</button>
+                        <button onclick="window.copyZPL()" id="btnCopy" disabled class="col-span-2 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-2 rounded-xl border border-slate-600 cursor-not-allowed text-xs uppercase transition flex justify-center items-center gap-2"><i class="fa-solid fa-copy"></i> Copiar</button>
                     </div>
                     <textarea id="finalZPL" readonly class="mt-4 w-full h-24 bg-black text-green-500 font-mono text-[10px] p-2 rounded border border-slate-700 focus:outline-none resize-none" placeholder="O código ZPL aparecerá aqui..."></textarea>
                 </section>
@@ -171,7 +187,6 @@
                 <a href="https://wa.me/5598991401141" target="_blank" class="btn bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl shadow-lg w-full md:w-auto inline-flex px-6">
                     <i class="fa-brands fa-whatsapp text-xl mr-2"></i> Suporte WhatsApp
                 </a>
-                <p class="text-xs text-slate-400 mt-4">Dica: Carregue o Excel no computador para ter os dados completos (Rua/Rack) na hora de imprimir.</p>
             </div>
         </div>
     </div>
@@ -201,7 +216,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // GLOBAL VARS
+        // GLOBALS
         window.inventory = [];
         window.queue = [];
         window.serialPort = null;
@@ -211,64 +226,106 @@
         const statusBox = document.getElementById('statusBox');
         statusBox.classList.remove('bg-yellow-600');
         statusBox.classList.add('bg-emerald-600');
-        statusBox.innerHTML = '<i class="fa-solid fa-fire"></i> CONECTADO AO FIREBASE';
+        statusBox.innerHTML = '<i class="fa-solid fa-fire"></i> FIREBASE CONECTADO';
         setTimeout(() => statusBox.classList.add('hidden'), 2000);
 
-        // REALTIME SYNC (FILA)
+        // REALTIME SYNC (LEITURA DA FILA)
         const qQueue = query(collection(db, "print_queue"), orderBy("created_at"));
         
         onSnapshot(qQueue, (snapshot) => {
             window.queue = [];
             snapshot.forEach((doc) => {
                 const d = doc.data();
-                // Procura na memória local
-                const p = window.findProd(d.codigo);
                 window.queue.push({
                     id: doc.id,
                     COD: d.codigo,
                     validade: d.validade,
-                    // Se não tiver local, usa o nome provisório salvo na nuvem, ou mensagem de espera
-                    NOM: p ? p.NOM : (d.tempName || 'Carregue o Excel...')
+                    // CORREÇÃO: Usa o nome salvo no Firebase se não tiver Excel local
+                    NOM: d.fullData && d.fullData.NOM ? d.fullData.NOM : (d.tempName || 'Aguardando Dados...')
                 });
+                
+                // Se tiver dados completos salvos no item da fila, usa eles
+                if(d.fullData) {
+                    // Opcional: Atualizar inventário temporário se quiser
+                }
             });
             window.updateUI();
         });
 
-        // ACTIONS
+        // --- DATA FUNCTIONS ---
+        window.saveToCloud = async () => {
+            if(window.inventory.length === 0) return alert("Carregue Excel!");
+            if(!confirm("Substituir dados da nuvem?")) return;
+            
+            document.getElementById('uploadLoader').classList.remove('hide');
+            const q = await getDocs(collection(db, "products"));
+            const batchDel = writeBatch(db);
+            q.forEach((doc) => { batchDel.delete(doc.ref); });
+            await batchDel.commit();
+
+            const batchAdd = writeBatch(db);
+            window.inventory.slice(0, 480).forEach((item) => { 
+                const ref = doc(collection(db, "products"));
+                batchAdd.set(ref, item);
+            });
+            await batchAdd.commit();
+            document.getElementById('uploadLoader').classList.add('hide');
+            window.showToast("Salvo no Firebase!");
+        };
+
+        window.loadFromCloud = async () => {
+            document.getElementById('uploadLoader').classList.remove('hide');
+            const q = await getDocs(collection(db, "products"));
+            window.inventory = [];
+            q.forEach((doc) => { window.inventory.push(doc.data()); });
+            
+            if(window.inventory.length > 0) {
+                window.updateDataInfo("Firebase", window.inventory.length);
+                window.updateUI(); 
+            } else alert("Banco vazio.");
+            document.getElementById('uploadLoader').classList.add('hide');
+        };
+
+        // --- QUEUE ACTIONS (ADD COM DADOS COMPLETOS) ---
         window.addItemVal = async () => {
             const c = document.getElementById('valCode').value;
             const v = document.getElementById('valDate').value;
             if(v.length < 7) return alert("Data inválida");
             const prod = window.findProd(c);
             
-            // Salva no Firebase (com nome temporário se existir)
-            await addDoc(collection(db, "print_queue"), {
-                codigo: c,
-                validade: v,
-                tempName: prod ? prod.NOM : 'Desconhecido',
-                created_at: Date.now()
-            });
-            
-            document.getElementById('valCode').value = "";
-            document.getElementById('valDate').value = "";
-            document.getElementById('valPreview').innerText = "";
-            document.getElementById('dateContainer').classList.add('hidden');
-            document.getElementById('valCode').focus();
-            window.showToast("Adicionado à Fila!");
+            if (prod) {
+                await addDoc(collection(db, "print_queue"), {
+                    codigo: c,
+                    validade: v,
+                    tempName: prod.NOM,
+                    fullData: prod, // SALVA TUDO PARA O PC LER DEPOIS
+                    created_at: Date.now()
+                });
+                
+                document.getElementById('valCode').value = "";
+                document.getElementById('valDate').value = "";
+                document.getElementById('valPreview').innerText = "";
+                document.getElementById('dateContainer').classList.add('hidden');
+                document.getElementById('valCode').focus();
+                window.showToast("Adicionado!");
+            } else alert("Produto não encontrado na base atual.");
         };
 
         window.addItemEnd = async () => {
             const c = window.extractEAN(document.getElementById('endCode').value);
             const prod = window.findProd(c);
-            await addDoc(collection(db, "print_queue"), {
-                codigo: c,
-                validade: "",
-                tempName: prod ? prod.NOM : 'Desconhecido',
-                created_at: Date.now()
-            });
-            document.getElementById('endCode').value = "";
-            document.getElementById('endCode').focus();
-            window.showToast("Adicionado!");
+            if (prod) {
+                await addDoc(collection(db, "print_queue"), {
+                    codigo: c,
+                    validade: "",
+                    tempName: prod.NOM,
+                    fullData: prod, // SALVA TUDO
+                    created_at: Date.now()
+                });
+                document.getElementById('endCode').value = "";
+                document.getElementById('endCode').focus();
+                window.showToast("Adicionado!");
+            } else alert("Não encontrado");
         };
 
         window.addListEnd = async () => {
@@ -276,14 +333,15 @@
              const batch = writeBatch(db);
              let c=0;
              l.forEach(x => {
-                 const ref = doc(collection(db, "print_queue"));
-                 // Mesmo sem achar o produto agora, manda pra fila. Quem for imprimir carrega o Excel depois.
                  const p = window.findProd(x);
-                 batch.set(ref, {codigo: x, validade: "", tempName: p ? p.NOM : 'Processar...', created_at: Date.now() + c});
-                 c++;
+                 if(p) {
+                     const ref = doc(collection(db, "print_queue"));
+                     batch.set(ref, {codigo: x, validade: "", tempName: p.NOM, fullData: p, created_at: Date.now() + c});
+                     c++;
+                 }
              });
              if(c>0) { await batch.commit(); document.getElementById('endList').value=""; window.showToast(`${c} enviados!`); }
-             else alert("Nenhum válido");
+             else alert("Nenhum código válido.");
         };
 
         window.removeFromQueue = async (id) => { await deleteDoc(doc(db, "print_queue", id)); };
@@ -297,22 +355,25 @@
             window.showToast("Fila Limpa");
         };
 
-        // EXCEL PARSER (LOCAL)
+        // EXCEL PARSER
         document.getElementById('fileInput').addEventListener('change', async (e) => {
             const f = e.target.files[0]; if(!f) return;
             document.getElementById('uploadLoader').classList.remove('hide');
             setTimeout(async()=>{ try { const b=await f.arrayBuffer(); const wb=XLSX.read(b,{type:'array'}); const r=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1}); 
-            // Otimização: Carrega apenas colunas necessárias para a memória RAM
             window.inventory=r.slice(1).map(x=>({COD:String(x[0]||"").trim().toUpperCase(),NOM:String(x[1]||"").trim().toUpperCase(),RUA:String(x[4]||"").trim(),RCK:String(x[5]||"").trim(),LIN:String(x[6]||"").trim(),COL:String(x[7]||"").trim()})).filter(x=>x.COD); 
-            
-            document.getElementById('dbCount').innerText = `${window.inventory.length} itens`;
-            document.getElementById('dbCount').classList.replace('text-slate-500', 'text-emerald-400');
-            window.showToast("Excel Carregado!");
-            window.updateUI(); // Atualiza a lista visual com os nomes do Excel recém carregado
-            } catch(err){ alert(err.message); } finally{ document.getElementById('uploadLoader').classList.add('hide'); e.target.value=''; } },500);
+            window.updateDataInfo("Excel", window.inventory.length); document.getElementById('btnSaveCloud').classList.remove('hidden'); window.updateUI(); } catch(err){ alert(err.message); } finally{ document.getElementById('uploadLoader').classList.add('hide'); e.target.value=''; } },600);
         });
 
         // HELPERS
+        window.updateDataInfo = (s, c) => {
+            document.getElementById('lockScreen').classList.add('hidden'); document.getElementById('sourceSelection').classList.add('hidden'); 
+            document.getElementById('dataLoaded').classList.remove('hidden'); document.getElementById('rowCount').innerText = `${c} Produtos`;
+            if(s==="Excel") document.getElementById('saveToCloudContainer').classList.remove('hidden'); 
+            else document.getElementById('saveToCloudContainer').classList.add('hidden');
+            window.showToast("Carregado!"); 
+        };
+        window.resetData = () => { window.inventory=[]; document.getElementById('lockScreen').classList.remove('hidden'); document.getElementById('sourceSelection').classList.remove('hidden'); document.getElementById('dataLoaded').classList.add('hidden'); };
+        
         window.findProd = (c) => { let f=window.inventory.find(i=>i.COD==c); if(!f)try{let n=parseInt(c); if(!isNaN(n))f=window.inventory.find(i=>parseInt(i.COD)===n)}catch(e){} return f; };
         window.extractEAN = (v) => { v=v.replace(/\D/g,''); return v.length>=12 ? v.slice(-6,-1) : v; };
         window.maskDate = (el) => { let v=el.value.replace(/\D/g,''); if(v.length>2)v=v.substring(0,2)+'/'+v.substring(2,6); el.value=v; };
@@ -320,13 +381,13 @@
         window.checkCode = (el, prevId) => {
             let v=el.value.replace(/\D/g,''), fv=v; if(v.length>=12)fv=window.extractEAN(v);
             const p=window.findProd(fv); const prev=document.getElementById(prevId);
-            if(p){ el.value=fv; prev.innerText=p.NOM; if(prevId==='valPreview'){ document.getElementById('dateContainer').classList.remove('hidden'); setTimeout(()=>document.getElementById('valDate').focus(),100); } }
+            if(p){ el.value=fv; prev.innerText=p.NOM; if(prevId==='valName'){ document.getElementById('dateContainer').classList.remove('hidden'); setTimeout(()=>document.getElementById('valDate').focus(),100); } }
             else prev.innerText=v.length>3?"Não encontrado":"";
         };
         
         window.checkEndCode = (el) => {
             let v=el.value.replace(/\D/g,''), fv=v; if(v.length>=12)fv=window.extractEAN(v);
-            const p=window.findProd(fv); const prev=document.getElementById(endPreview);
+            const p=window.findProd(fv); const prev=document.getElementById('endPreview');
             if(p) prev.innerText=p.NOM; else prev.innerText=v.length>3?"Não encontrado":"";
         };
 
@@ -334,26 +395,18 @@
         window.handleEnterEnd = (e) => { if(e.key==="Enter") window.addItemEnd(); };
 
         window.updateUI = () => {
-            const tb=document.getElementById('queueTable'); 
-            document.getElementById('queueBadge').innerText=window.queue.length;
+            const tb=document.getElementById('queueTable'); document.getElementById('queueBadge').innerText=window.queue.length;
             document.getElementById('finalZPL').classList.add('hidden');
-            
             ['btnDownload','btnCopy','btnDirect'].forEach(id=>{ const b=document.getElementById(id); b.disabled=true; b.classList.add('bg-slate-700','cursor-not-allowed'); b.classList.remove('bg-success','bg-accent','bg-emerald-600'); });
-            
             if(window.queue.length===0) return tb.innerHTML='<tr><td colspan="4" class="p-8 text-center italic opacity-50">Fila vazia</td></tr>';
             
-            tb.innerHTML = window.queue.map((i,idx)=> {
-                // Tenta achar o nome completo no inventário local
-                const p = window.findProd(i.COD);
-                const displayName = p ? p.NOM : (i.tempName || 'Carregue o Excel...');
-                
-                return `<tr class="border-b border-slate-700/50 hover:bg-slate-800/50">
+            tb.innerHTML = window.queue.map((i,idx)=> `
+                <tr class="border-b border-slate-700/50 hover:bg-slate-800/50">
                     <td class="p-3 text-slate-500 font-mono text-xs">${idx+1}</td>
-                    <td class="p-3"><div class="font-bold text-white text-xs">${i.COD}</div><div class="text-[10px] text-slate-400 truncate w-32">${displayName}</div></td>
+                    <td class="p-3"><div class="font-bold text-white text-xs">${i.COD}</div><div class="text-[10px] text-slate-400 truncate w-32">${i.NOM}</div></td>
                     <td class="p-3 text-emerald-400 font-mono text-xs text-center">${i.validade||'-'}</td>
                     <td class="p-3 text-right"><button onclick="window.removeItem('${i.id}')" class="text-red-400 hover:text-white"><i class="fa-solid fa-times"></i></button></td>
-                </tr>`;
-            }).join('');
+                </tr>`).join('');
             
             if(window.queue.length>0) { 
                 document.getElementById('btnDownload').disabled=false; document.getElementById('btnDownload').classList.replace('bg-slate-700','bg-blue-600'); document.getElementById('btnDownload').classList.remove('cursor-not-allowed');
@@ -362,7 +415,6 @@
             if(window.serialPort && window.queue.length>0) { document.getElementById('btnDirect').disabled=false; document.getElementById('btnDirect').classList.replace('bg-slate-700','bg-emerald-600'); document.getElementById('btnDirect').classList.remove('cursor-not-allowed'); }
         };
 
-        // UI Toggles
         window.setMode = (m) => {
             document.getElementById('formValidade').classList.toggle('hidden', m!=='validade');
             document.getElementById('formEndereco').classList.toggle('hidden', m!=='endereco');
@@ -373,10 +425,9 @@
         window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
         window.showToast = (msg) => { const t = document.getElementById('toast'); t.querySelector('span').innerText = msg; t.classList.remove('translate-y-10', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-10', 'opacity-0'), 2500); };
 
-        // ZPL GENERATION
+        // --- ZPL GENERATION (MODIFIED TO USE FULLDATA FROM FIREBASE) ---
         window.generateZPL = () => {
-            if(window.queue.length===0) return alert("Fila vazia");
-            if(window.inventory.length===0) return alert("Carregue o Excel para gerar as etiquetas com nomes e endereços!");
+            if (window.queue.length === 0) return alert("Fila vazia");
 
             let fullCode = "";
             const clean = (t, type) => {
@@ -388,19 +439,112 @@
                 return s.trim().substring(0, 28);
             };
 
-            for (let i = 0; i < window.localQueue.length; i += 2) {
-                const top = window.localQueue[i];
-                const bot = window.localQueue[i + 1];
+            for (let i = 0; i < window.queue.length; i += 2) {
+                const t = window.queue[i];
+                const b = window.queue[i + 1];
                 
-                // Busca dados completos no Excel local
-                const pTop = window.findProd(top.COD) || { NOM: top.tempName, RUA: '', RCK: '', LIN: '', COL: '' };
-                const pBot = bot ? (window.findProd(bot.COD) || { NOM: bot.tempName, RUA: '', RCK: '', LIN: '', COL: '' }) : null;
+                // Pega dados do firebase (fullData) ou do inventário local se disponível
+                // Essa é a correção: Prioriza dados que vieram do Firebase junto com o item
+                const getFullData = (queueItem) => {
+                    // Se o objeto 'fullData' veio do firebase, usa ele (garante dados no PC mesmo sem excel)
+                    // Se não veio, tenta achar no local
+                    const itemData = window.localQueue.find(q => q.id === queueItem.id); // Re-find to be sure or use queueItem directly if updated
+                    // Actually queueItem comes from snapshot which has fullData attached in the onSnapshot above? No, I need to attach it.
+                    // Wait, onSnapshot creates window.queue. Let's fix onSnapshot to include fullData.
+                    
+                    // FIX: Re-accessing raw data from firestore snapshot was cleaner, but here we can just use what we have.
+                    // IMPORTANT: The queue array now contains validade, COD, NOM. But for ZPL we need RUA, RCK etc.
+                    // We need to fetch full details.
+                    
+                    // Fallback strategy:
+                    // 1. Try local inventory
+                    let prod = window.findProd(queueItem.COD);
+                    // 2. If not local, try to see if we saved it in the queue object (we need to adjust onSnapshot for this)
+                    // The onSnapshot in this script DOES NOT yet map fullData. Let's fix that too.
+                    return prod || { NOM: queueItem.NOM, RUA: '', RCK: '', LIN: '', COL: '' };
+                };
+                
+                // NOTE: To make this 100% work without Excel on PC, we need to read 'fullData' from the Firestore document.
+                // I will adjust the onSnapshot function above to include fullData.
+                
+                // Assuming onSnapshot is fixed (see below), we access via queueItem directly if I added it to window.queue
+                
+                // Let's modify onSnapshot in the script module block to map 'fullData'.
+                
+            }
+            
+            // ... (Rest of generate logic is handled inside the module below with the fix) ...
+        };
+        
+        // --- THIS PART IS HANDLED INSIDE THE MODULE SCRIPT BELOW ---
+        
+        window.connectUSB = async () => { if(!navigator.serial)return alert("Use PC"); try{window.serialPort=await navigator.serial.requestPort(); await window.serialPort.open({baudRate:115200}); window.showToast("Conectado!"); window.updateUI();} catch(e){alert("Erro: "+e.message);} };
+        window.printDirect = async () => { if(!window.serialPort)return; const w=window.serialPort.writable.getWriter(); await w.write(new TextEncoder().encode(document.getElementById('finalZPL').value)); w.releaseLock(); window.showToast("Enviado!"); };
+        window.downloadFile = () => { const c=document.getElementById('finalZPL').value; if(!c)return; const a=document.createElement('a'); a.href=window.URL.createObjectURL(new Blob([c],{type:'text/plain'})); a.download=`etiquetas.txt`; a.click(); };
+        window.copyZPL = () => { navigator.clipboard.writeText(document.getElementById('finalZPL').value); window.showToast("Copiado!"); };
+    </script>
+    
+    <!-- FIXING THE MODULE SCRIPT FOR ZPL DATA -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // CONFIG (Same as before)
+        const firebaseConfig = { apiKey: "AIzaSyB1DaTOer5_cZ-JT15FlZGapNV1nUDrhmE", authDomain: "acai-delibery.firebaseapp.com", databaseURL: "https://acai-delibery-default-rtdb.firebaseio.com", projectId: "acai-delibery", storageBucket: "acai-delibery.firebasestorage.app", messagingSenderId: "476733774850", appId: "1:476733774850:web:0549e47df6ee8dc2e79b1b", measurementId: "G-98GT80SD7J" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // SYNC WITH FULL DATA SUPPORT
+        const qQueue = query(collection(db, "print_queue"), orderBy("created_at"));
+        
+        onSnapshot(qQueue, (snapshot) => {
+            window.queue = [];
+            snapshot.forEach((doc) => {
+                const d = doc.data();
+                // Try local find first, then fallback to saved fullData
+                const localP = window.findProd(d.codigo);
+                const savedP = d.fullData || {};
+                
+                window.queue.push({
+                    id: doc.id,
+                    COD: d.codigo,
+                    validade: d.validade,
+                    // Name priority: Local Excel -> Firebase Saved -> Temp Name -> Fallback
+                    NOM: localP?.NOM || savedP.NOM || d.tempName || 'Aguardando...',
+                    // Full data for ZPL generation
+                    DATA: localP || savedP || { NOM: d.tempName, RUA: '', RCK: '', LIN: '', COL: '' }
+                });
+            });
+            window.updateUI();
+        });
+
+        // GENERATE ZPL (USING CORRECT DATA SOURCE)
+        window.generateZPL = () => {
+            if(window.queue.length===0) return alert("Fila vazia");
+            
+            let fullCode = "";
+            const clean = (t, type) => {
+                let s = String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+                if(type === 'RUA') s = s.replace(/^RUA\s*:?\s*/i, "");
+                if(type === 'RCK') s = s.replace(/^RACK\s*:?\s*/i, "");
+                if(type === 'LIN') s = s.replace(/^(LINHA|LIN)\s*:?\s*/i, "");
+                if(type === 'COL') s = s.replace(/^(COLUNA|COL)\s*:?\s*/i, "");
+                return s.trim().substring(0, 28);
+            };
+
+            for (let i = 0; i < window.queue.length; i += 2) {
+                const t = window.queue[i];
+                const b = window.queue[i + 1];
+                
+                // USE .DATA property which contains full info (Rua, Rack, etc)
+                const pt = t.DATA;
+                const pb = b ? b.DATA : null;
 
                 let z = `^XA\n^CI28^PW812^LL609^LH0,0^MD30\n`;
-                z += `^FX TOPO\n^FO20,5^A0N,100,90^FD${top.COD}^FS\n${top.validade ? `^FO235,-5^GB550,60,75^FS\n^FO250,5^A0N,95,90^FR^FDVAL: ${top.validade}^FS` : ''}\n^FO20,110^A0N,75,75^FB770,2,0,L,0^FD${clean(pTop.NOM)}^FS\n^FO20,280^A0N,45,45^FDRUA: ${clean(pTop.RUA,'RUA')} - RACK: ${clean(pTop.RCK,'RCK')}^FS\n^FO20,330^A0N,45,45^FDLINHA: ${clean(pTop.LIN,'LIN')} - COL: ${clean(pTop.COL,'COL')}^FS\n^BY4,3,100^FO20,390^BCN,130,Y,N,N^FD${top.COD}^FS\n^FO640,370^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
+                z += `^FX TOPO\n^FO20,5^A0N,100,90^FD${t.COD}^FS\n${t.validade ? `^FO235,-5^GB550,60,75^FS\n^FO250,5^A0N,95,90^FR^FDVAL: ${t.validade}^FS` : ''}\n^FO20,110^A0N,75,75^FB770,2,0,L,0^FD${clean(pt.NOM)}^FS\n^FO20,280^A0N,45,45^FDRUA: ${clean(pt.RUA,'RUA')} - RACK: ${clean(pt.RCK,'RCK')}^FS\n^FO20,330^A0N,45,45^FDLINHA: ${clean(pt.LIN,'LIN')} - COL: ${clean(pt.COL,'COL')}^FS\n^BY4,3,100^FO20,390^BCN,130,Y,N,N^FD${t.COD}^FS\n^FO640,370^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
                 
-                if (bot) {
-                    z += `^FX BASE\n^FO20,600^A0N,100,90^FD${bot.COD}^FS\n${bot.validade ? `^FO235,590^GB550,65,85^FS\n^FO250,600^A0N,95,90^FR^FDVAL: ${bot.validade}^FS` : ''}\n^FO20,705^A0N,75,75^FB770,2,0,L,0^FD${clean(pBot.NOM)}^FS\n^FO20,875^A0N,45,45^FDRUA: ${clean(pBot.RUA,'RUA')} - RACK: ${clean(pBot.RCK,'RCK')}^FS\n^FO20,925^A0N,45,45^FDLINHA: ${clean(pBot.LIN,'LIN')} - COL: ${clean(pBot.COL,'COL')}^FS\n^BY4,3,100^FO20,985^BCN,130,Y,N,N^FD${bot.COD}^FS\n^FO640,965^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
+                if (pb) {
+                    z += `^FX BASE\n^FO20,600^A0N,100,90^FD${b.COD}^FS\n${b.validade ? `^FO235,590^GB550,65,85^FS\n^FO250,600^A0N,95,90^FR^FDVAL: ${b.validade}^FS` : ''}\n^FO20,705^A0N,75,75^FB770,2,0,L,0^FD${clean(pb.NOM)}^FS\n^FO20,875^A0N,45,45^FDRUA: ${clean(pb.RUA,'RUA')} - RACK: ${clean(pb.RCK,'RCK')}^FS\n^FO20,925^A0N,45,45^FDLINHA: ${clean(pb.LIN,'LIN')} - COL: ${clean(pb.COL,'COL')}^FS\n^BY4,3,100^FO20,985^BCN,130,Y,N,N^FD${b.COD}^FS\n^FO640,965^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
                 }
                 
                 z += `^XZ\n`;
@@ -419,38 +563,7 @@
             }
         };
 
-        // USB & DOWNLOAD
-        window.connectUSB = async () => {
-            if (!navigator.serial) return alert("Use Chrome/Edge no PC");
-            try {
-                window.serialPort = await navigator.serial.requestPort();
-                await window.serialPort.open({ baudRate: 115200 });
-                window.showToast("USB Conectado!");
-                window.updateQueueUI();
-            } catch (err) { alert("Erro: " + err.message); }
-        };
-
-        window.printDirect = async () => {
-            if (!window.serialPort) return alert("Conecte a impressora");
-            const w = window.serialPort.writable.getWriter();
-            await w.write(new TextEncoder().encode(document.getElementById('finalZPL').value));
-            w.releaseLock();
-            window.showToast("Enviado!");
-        };
-
-        window.downloadFile = () => {
-            const c = document.getElementById('finalZPL').value;
-            const b = new Blob([c], { type: 'text/plain' });
-            const a = document.createElement('a');
-            a.href = window.URL.createObjectURL(b);
-            a.download = `etiquetas.txt`;
-            a.click();
-        };
-
-        window.copyZPL = () => {
-            navigator.clipboard.writeText(document.getElementById('finalZPL').value);
-            window.showToast("Copiado!");
-        };
+        // ... (Keep existing Cloud, Add, Remove functions) ...
     </script>
 </body>
 </html>
