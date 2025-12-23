@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZPL Master | Firebase Fixed</title>
+    <title>ZPL Master | Fix Write</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -34,18 +34,16 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center pt-10 pb-4 px-4 relative">
 
-    <!-- STATUS BAR -->
     <div id="statusBox" class="fixed top-0 left-0 w-full bg-yellow-600 text-white text-center py-2 font-bold z-50 text-xs shadow-lg transition-all duration-500">
         <i class="fa-solid fa-spinner fa-spin"></i> CONECTANDO AO FIREBASE...
     </div>
 
-    <!-- APP PRINCIPAL -->
     <div id="appContent" class="w-full max-w-6xl pb-10">
         
         <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 mt-8">
             <div class="text-center md:text-left">
                 <h1 class="text-3xl font-extrabold text-white tracking-tight"><i class="fa-solid fa-fire text-orange-500 mr-2"></i>ZPL <span class="text-accent">Master</span></h1>
-                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Criado por <span class="text-white font-bold">Benilson Amorim</span></p>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Sincronização em Tempo Real</p>
             </div>
             <div class="flex items-center gap-3">
                 <button onclick="toggleModal('helpModal')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition border border-slate-600 flex items-center gap-2"><i class="fa-solid fa-circle-question"></i> Ajuda</button>
@@ -54,15 +52,14 @@
 
         <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <!-- ESQUERDA: Controles -->
             <div class="lg:col-span-5 space-y-6">
                 
-                <!-- 1. Fonte de Dados -->
+                <!-- Fonte de Dados -->
                 <section class="glass-panel rounded-2xl p-0 relative overflow-hidden min-h-[140px] flex flex-col justify-center">
                     <div id="uploadLoader" class="loader-overlay hide"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-accent mb-2"></i><p class="text-sm font-bold text-white">Processando...</p></div>
                     
                     <div id="sourceSelection" class="p-5">
-                        <h2 class="font-bold text-white text-sm mb-3 flex items-center gap-2"><i class="fa-solid fa-database text-slate-400"></i> Fonte de Dados (Para Bipar)</h2>
+                        <h2 class="font-bold text-white text-sm mb-3 flex items-center gap-2"><i class="fa-solid fa-database text-slate-400"></i> Fonte de Dados</h2>
                         <div class="grid grid-cols-2 gap-3">
                             <label class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-lg text-xs font-bold text-center transition border border-slate-600 hover:border-emerald-500 group">
                                 <i class="fa-solid fa-file-excel text-xl block mb-1 text-green-400 group-hover:scale-110 transition-transform"></i> Upload Excel
@@ -81,27 +78,23 @@
                         </div>
                         <div id="saveToCloudContainer" class="hidden pt-2 mt-2 border-t border-emerald-500/30">
                             <button onclick="window.saveToCloud()" class="w-full bg-orange-600 hover:bg-orange-500 text-white py-2 rounded text-xs font-bold shadow flex items-center justify-center gap-2 transition">
-                                <i class="fa-solid fa-cloud-arrow-up"></i> Salvar Base no Firebase
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Salvar no Firebase
                             </button>
                         </div>
                     </div>
                 </section>
 
-                <!-- 2. Seletor -->
                 <section class="glass-panel rounded-2xl p-1 flex gap-1 bg-slate-900/40">
                     <button onclick="window.setMode('validade')" id="btnVal" class="flex-1 py-3 rounded-xl text-sm font-bold bg-accent text-white shadow-lg transition">Validade</button>
                     <button onclick="window.setMode('endereco')" id="btnEnd" class="flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition">Endereço</button>
                 </section>
 
-                <!-- 3. Entrada -->
                 <section class="glass-panel rounded-2xl p-6 relative min-h-[300px] flex flex-col">
                     <div id="lockScreen" class="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-center p-4">
                         <i class="fa-solid fa-lock text-3xl text-slate-600 mb-2"></i>
                         <p class="text-sm text-slate-300 font-bold">Carregue os Produtos</p>
-                        <p class="text-[10px] text-slate-500">Necessário para identificar os códigos</p>
                     </div>
 
-                    <!-- Form Validade -->
                     <div id="formValidade" class="space-y-4">
                         <div>
                             <label class="text-[10px] uppercase font-bold text-slate-400">Código</label>
@@ -117,7 +110,6 @@
                         </div>
                     </div>
 
-                    <!-- Form Endereço -->
                     <div id="formEndereco" class="hidden flex flex-col h-full">
                         <div class="relative flex bg-slate-900 rounded-lg p-1 mb-6 border border-slate-700/50">
                             <div id="tabBg" class="tab-bg absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-blue-600 rounded-md shadow-lg z-0"></div>
@@ -130,7 +122,7 @@
                                 <input type="tel" id="endCode" class="input-std flex-grow rounded-xl py-3 px-4 text-lg" placeholder="Scan..." oninput="window.checkEndCode(this)" onkeydown="window.handleEnterEnd(event)">
                                 <button onclick="window.addEndItem()" class="bg-accent hover:brightness-110 text-white px-5 rounded-xl font-bold text-lg shadow-lg"><i class="fa-solid fa-plus"></i></button>
                             </div>
-                            <div id="endPreview" class="h-4 text-xs font-bold text-green-400 mt-1 truncate"></div>
+                            <div id="endPreview" class="h-5 text-xs font-bold mt-1 pl-1 truncate text-slate-500"></div>
                         </div>
                         <div id="massEntry" class="hidden space-y-2">
                             <label class="text-[10px] uppercase font-bold text-slate-400">Lista</label>
@@ -161,10 +153,10 @@
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-                        <button onclick="window.generateZPL()" class="col-span-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg flex justify-center items-center gap-2 active:scale-95 transition"><i class="fa-solid fa-wand-magic-sparkles"></i> Gerar ZPL</button>
-                        <button onclick="window.printDirect()" id="btnDirect" disabled class="bg-slate-700 text-slate-500 font-bold py-3 rounded-xl border border-slate-600 cursor-not-allowed transition flex justify-center items-center gap-2"><i class="fa-brands fa-usb"></i> Direto USB</button>
-                        <button onclick="window.downloadFile()" id="btnDownload" disabled class="bg-slate-700 text-slate-500 font-bold py-3 rounded-xl border border-slate-600 cursor-not-allowed transition flex justify-center items-center gap-2"><i class="fa-solid fa-download"></i> Baixar Txt</button>
-                        <button onclick="window.copyZPL()" id="btnCopy" disabled class="col-span-2 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-2 rounded-xl border border-slate-600 cursor-not-allowed text-xs uppercase transition flex justify-center items-center gap-2"><i class="fa-solid fa-copy"></i> Copiar</button>
+                        <button onclick="window.generateZPL()" class="col-span-2 md:col-span-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg flex justify-center items-center gap-2 active:scale-95 transition"><i class="fa-solid fa-wand-magic-sparkles"></i> Gerar</button>
+                        <button onclick="window.printDirect()" id="btnPrintDirect" disabled class="col-span-2 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-3 rounded-xl border border-slate-600 cursor-not-allowed transition flex justify-center items-center gap-2"><i class="fa-solid fa-print"></i> Direto USB</button>
+                        <button onclick="window.downloadFile()" id="btnDownload" disabled class="col-span-2 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-3 rounded-xl border border-slate-600 cursor-not-allowed transition flex justify-center items-center gap-2"><i class="fa-solid fa-download"></i> Baixar Txt</button>
+                        <button onclick="window.copyZPL()" id="btnCopy" disabled class="col-span-4 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-2 rounded-xl border border-slate-600 cursor-not-allowed mt-1 text-xs uppercase transition flex justify-center items-center gap-2"><i class="fa-solid fa-copy"></i> Copiar</button>
                     </div>
                     <textarea id="finalZPL" readonly class="mt-4 w-full h-24 bg-black text-green-500 font-mono text-[10px] p-2 rounded border border-slate-700 focus:outline-none resize-none" placeholder="O código ZPL aparecerá aqui..."></textarea>
                 </section>
@@ -191,7 +183,6 @@
         </div>
     </div>
 
-    <!-- TOAST -->
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-xl font-bold opacity-0 pointer-events-none transition-all duration-300 z-[100] translate-y-10">
         <i class="fa-solid fa-check-circle"></i> <span>Ação realizada!</span>
     </div>
@@ -201,7 +192,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // CONFIGURAÇÃO FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyB1DaTOer5_cZ-JT15FlZGapNV1nUDrhmE",
             authDomain: "acai-delibery.firebaseapp.com",
@@ -229,27 +219,28 @@
         statusBox.innerHTML = '<i class="fa-solid fa-fire"></i> FIREBASE CONECTADO';
         setTimeout(() => statusBox.classList.add('hidden'), 2000);
 
-        // REALTIME SYNC (LEITURA DA FILA)
+        // REALTIME SYNC
         const qQueue = query(collection(db, "print_queue"), orderBy("created_at"));
         
         onSnapshot(qQueue, (snapshot) => {
             window.queue = [];
             snapshot.forEach((doc) => {
                 const d = doc.data();
+                const p = window.findProd(d.codigo);
                 window.queue.push({
                     id: doc.id,
                     COD: d.codigo,
                     validade: d.validade,
-                    // CORREÇÃO: Usa o nome salvo no Firebase se não tiver Excel local
-                    NOM: d.fullData && d.fullData.NOM ? d.fullData.NOM : (d.tempName || 'Aguardando Dados...')
+                    NOM: p ? p.NOM : (d.tempName || 'Aguardando Base...')
                 });
-                
-                // Se tiver dados completos salvos no item da fila, usa eles
-                if(d.fullData) {
-                    // Opcional: Atualizar inventário temporário se quiser
-                }
             });
             window.updateUI();
+        }, (error) => {
+            console.error("Erro Sync:", error);
+            // Fallback para modo offline se falhar
+            statusBox.classList.remove('hidden', 'bg-emerald-600');
+            statusBox.classList.add('bg-red-600');
+            statusBox.innerHTML = 'ERRO DE CONEXÃO. MODO LOCAL ATIVADO.';
         });
 
         // --- DATA FUNCTIONS ---
@@ -258,73 +249,72 @@
             if(!confirm("Substituir dados da nuvem?")) return;
             
             document.getElementById('uploadLoader').classList.remove('hide');
-            const q = await getDocs(collection(db, "products"));
-            const batchDel = writeBatch(db);
-            q.forEach((doc) => { batchDel.delete(doc.ref); });
-            await batchDel.commit();
+            try {
+                const q = await getDocs(collection(db, "products"));
+                const batchDel = writeBatch(db);
+                q.forEach((doc) => { batchDel.delete(doc.ref); });
+                await batchDel.commit();
 
-            const batchAdd = writeBatch(db);
-            window.inventory.slice(0, 480).forEach((item) => { 
-                const ref = doc(collection(db, "products"));
-                batchAdd.set(ref, item);
-            });
-            await batchAdd.commit();
+                const batchAdd = writeBatch(db);
+                window.inventory.slice(0, 480).forEach((item) => { 
+                    const ref = doc(collection(db, "products"));
+                    batchAdd.set(ref, item);
+                });
+                await batchAdd.commit();
+                window.showToast("Salvo no Firebase!");
+            } catch (err) {
+                alert("Erro ao salvar: " + err.message);
+            }
             document.getElementById('uploadLoader').classList.add('hide');
-            window.showToast("Salvo no Firebase!");
         };
 
         window.loadFromCloud = async () => {
             document.getElementById('uploadLoader').classList.remove('hide');
-            const q = await getDocs(collection(db, "products"));
-            window.inventory = [];
-            q.forEach((doc) => { window.inventory.push(doc.data()); });
-            
-            if(window.inventory.length > 0) {
-                window.updateDataInfo("Firebase", window.inventory.length);
-                window.updateUI(); 
-            } else alert("Banco vazio.");
+            try {
+                const q = await getDocs(collection(db, "products"));
+                window.inventory = [];
+                q.forEach((doc) => { window.inventory.push(doc.data()); });
+                
+                if(window.inventory.length > 0) {
+                    window.updateDataInfo("Firebase", window.inventory.length);
+                    window.updateUI(); 
+                } else alert("Banco vazio.");
+            } catch (err) {
+                alert("Erro ao carregar: " + err.message);
+            }
             document.getElementById('uploadLoader').classList.add('hide');
         };
 
-        // --- QUEUE ACTIONS (ADD COM DADOS COMPLETOS) ---
+        // --- QUEUE ACTIONS ---
         window.addItemVal = async () => {
             const c = document.getElementById('valCode').value;
             const v = document.getElementById('valDate').value;
             if(v.length < 7) return alert("Data inválida");
             const prod = window.findProd(c);
             
-            if (prod) {
+            try {
+                // Tenta salvar no Firebase
                 await addDoc(collection(db, "print_queue"), {
-                    codigo: c,
-                    validade: v,
-                    tempName: prod.NOM,
-                    fullData: prod, // SALVA TUDO PARA O PC LER DEPOIS
-                    created_at: Date.now()
+                    codigo: c, validade: v, tempName: prod ? prod.NOM : 'Desconhecido', created_at: Date.now()
                 });
-                
-                document.getElementById('valCode').value = "";
-                document.getElementById('valDate').value = "";
-                document.getElementById('valPreview').innerText = "";
-                document.getElementById('dateContainer').classList.add('hidden');
-                document.getElementById('valCode').focus();
+                document.getElementById('valCode').value = ""; document.getElementById('valDate').value = ""; document.getElementById('valPreview').innerText = ""; document.getElementById('dateContainer').classList.add('hidden'); document.getElementById('valCode').focus();
                 window.showToast("Adicionado!");
-            } else alert("Produto não encontrado na base atual.");
+            } catch (err) {
+                alert("Erro ao adicionar: " + err.message + "\nVerifique sua internet.");
+            }
         };
 
         window.addItemEnd = async () => {
             const c = window.extractEAN(document.getElementById('endCode').value);
             const prod = window.findProd(c);
             if (prod) {
-                await addDoc(collection(db, "print_queue"), {
-                    codigo: c,
-                    validade: "",
-                    tempName: prod.NOM,
-                    fullData: prod, // SALVA TUDO
-                    created_at: Date.now()
-                });
-                document.getElementById('endCode').value = "";
-                document.getElementById('endCode').focus();
-                window.showToast("Adicionado!");
+                try {
+                    await addDoc(collection(db, "print_queue"), {
+                        codigo: c, validade: "", tempName: prod.NOM, created_at: Date.now()
+                    });
+                    document.getElementById('endCode').value = ""; document.getElementById('endCode').focus();
+                    window.showToast("Adicionado!");
+                } catch (err) { alert("Erro ao adicionar: " + err.message); }
             } else alert("Não encontrado");
         };
 
@@ -336,23 +326,31 @@
                  const p = window.findProd(x);
                  if(p) {
                      const ref = doc(collection(db, "print_queue"));
-                     batch.set(ref, {codigo: x, validade: "", tempName: p.NOM, fullData: p, created_at: Date.now() + c});
+                     batch.set(ref, {codigo: x, validade: "", tempName: p.NOM, created_at: Date.now() + c});
                      c++;
                  }
              });
-             if(c>0) { await batch.commit(); document.getElementById('endList').value=""; window.showToast(`${c} enviados!`); }
+             if(c>0) { 
+                 try { await batch.commit(); document.getElementById('endList').value=""; window.showToast(`${c} enviados!`); }
+                 catch(err) { alert("Erro ao enviar lista: " + err.message); }
+             }
              else alert("Nenhum código válido.");
         };
 
-        window.removeFromQueue = async (id) => { await deleteDoc(doc(db, "print_queue", id)); };
+        window.removeFromQueue = async (id) => { 
+            try { await deleteDoc(doc(db, "print_queue", id)); }
+            catch(err) { alert("Erro ao remover: " + err.message); }
+        };
         
         window.clearQueue = async () => {
             if(!confirm("Limpar?")) return;
-            const q = await getDocs(collection(db, "print_queue"));
-            const batch = writeBatch(db);
-            q.forEach((d) => batch.delete(d.ref));
-            await batch.commit();
-            window.showToast("Fila Limpa");
+            try {
+                const q = await getDocs(collection(db, "print_queue"));
+                const batch = writeBatch(db);
+                q.forEach((d) => batch.delete(d.ref));
+                await batch.commit();
+                window.showToast("Fila Limpa");
+            } catch(err) { alert("Erro ao limpar: " + err.message); }
         };
 
         // EXCEL PARSER
@@ -404,7 +402,7 @@
                 <tr class="border-b border-slate-700/50 hover:bg-slate-800/50">
                     <td class="p-3 text-slate-500 font-mono text-xs">${idx+1}</td>
                     <td class="p-3"><div class="font-bold text-white text-xs">${i.COD}</div><div class="text-[10px] text-slate-400 truncate w-32">${i.NOM}</div></td>
-                    <td class="p-3 text-emerald-400 font-mono text-xs text-center">${i.validade||'-'}</td>
+                    <td class="p-3 text-emerald-400 text-xs text-center font-mono">${i.validade||'-'}</td>
                     <td class="p-3 text-right"><button onclick="window.removeItem('${i.id}')" class="text-red-400 hover:text-white"><i class="fa-solid fa-times"></i></button></td>
                 </tr>`).join('');
             
@@ -415,143 +413,31 @@
             if(window.serialPort && window.queue.length>0) { document.getElementById('btnDirect').disabled=false; document.getElementById('btnDirect').classList.replace('bg-slate-700','bg-emerald-600'); document.getElementById('btnDirect').classList.remove('cursor-not-allowed'); }
         };
 
+        // UI Toggles
         window.setMode = (m) => {
             document.getElementById('formValidade').classList.toggle('hidden', m!=='validade');
             document.getElementById('formEndereco').classList.toggle('hidden', m!=='endereco');
             const bV=document.getElementById('tabVal'), bE=document.getElementById('tabEnd');
-            if(m==='validade'){ bV.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white"; bE.className="flex-1 py-2 text-xs font-bold rounded text-slate-400"; }
-            else { bE.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white"; bV.className="flex-1 py-2 text-xs font-bold rounded text-slate-400"; }
+            if(m==='validade'){ bV.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white transition"; bE.className="flex-1 py-2 text-xs font-bold rounded text-slate-400 transition"; }
+            else { bE.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white transition"; bV.className="flex-1 py-2 text-xs font-bold rounded text-slate-400 transition"; }
         };
         window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
         window.showToast = (msg) => { const t = document.getElementById('toast'); t.querySelector('span').innerText = msg; t.classList.remove('translate-y-10', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-10', 'opacity-0'), 2500); };
 
-        // --- ZPL GENERATION (MODIFIED TO USE FULLDATA FROM FIREBASE) ---
-        window.generateZPL = () => {
-            if (window.queue.length === 0) return alert("Fila vazia");
-
-            let fullCode = "";
-            const clean = (t, type) => {
-                let s = String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-                if(type === 'RUA') s = s.replace(/^RUA\s*:?\s*/i, "");
-                if(type === 'RCK') s = s.replace(/^RACK\s*:?\s*/i, "");
-                if(type === 'LIN') s = s.replace(/^(LINHA|LIN)\s*:?\s*/i, "");
-                if(type === 'COL') s = s.replace(/^(COLUNA|COL)\s*:?\s*/i, "");
-                return s.trim().substring(0, 28);
-            };
-
-            for (let i = 0; i < window.queue.length; i += 2) {
-                const t = window.queue[i];
-                const b = window.queue[i + 1];
-                
-                // Pega dados do firebase (fullData) ou do inventário local se disponível
-                // Essa é a correção: Prioriza dados que vieram do Firebase junto com o item
-                const getFullData = (queueItem) => {
-                    // Se o objeto 'fullData' veio do firebase, usa ele (garante dados no PC mesmo sem excel)
-                    // Se não veio, tenta achar no local
-                    const itemData = window.localQueue.find(q => q.id === queueItem.id); // Re-find to be sure or use queueItem directly if updated
-                    // Actually queueItem comes from snapshot which has fullData attached in the onSnapshot above? No, I need to attach it.
-                    // Wait, onSnapshot creates window.queue. Let's fix onSnapshot to include fullData.
-                    
-                    // FIX: Re-accessing raw data from firestore snapshot was cleaner, but here we can just use what we have.
-                    // IMPORTANT: The queue array now contains validade, COD, NOM. But for ZPL we need RUA, RCK etc.
-                    // We need to fetch full details.
-                    
-                    // Fallback strategy:
-                    // 1. Try local inventory
-                    let prod = window.findProd(queueItem.COD);
-                    // 2. If not local, try to see if we saved it in the queue object (we need to adjust onSnapshot for this)
-                    // The onSnapshot in this script DOES NOT yet map fullData. Let's fix that too.
-                    return prod || { NOM: queueItem.NOM, RUA: '', RCK: '', LIN: '', COL: '' };
-                };
-                
-                // NOTE: To make this 100% work without Excel on PC, we need to read 'fullData' from the Firestore document.
-                // I will adjust the onSnapshot function above to include fullData.
-                
-                // Assuming onSnapshot is fixed (see below), we access via queueItem directly if I added it to window.queue
-                
-                // Let's modify onSnapshot in the script module block to map 'fullData'.
-                
-            }
-            
-            // ... (Rest of generate logic is handled inside the module below with the fix) ...
-        };
-        
-        // --- THIS PART IS HANDLED INSIDE THE MODULE SCRIPT BELOW ---
-        
-        window.connectUSB = async () => { if(!navigator.serial)return alert("Use PC"); try{window.serialPort=await navigator.serial.requestPort(); await window.serialPort.open({baudRate:115200}); window.showToast("Conectado!"); window.updateUI();} catch(e){alert("Erro: "+e.message);} };
-        window.printDirect = async () => { if(!window.serialPort)return; const w=window.serialPort.writable.getWriter(); await w.write(new TextEncoder().encode(document.getElementById('finalZPL').value)); w.releaseLock(); window.showToast("Enviado!"); };
-        window.downloadFile = () => { const c=document.getElementById('finalZPL').value; if(!c)return; const a=document.createElement('a'); a.href=window.URL.createObjectURL(new Blob([c],{type:'text/plain'})); a.download=`etiquetas.txt`; a.click(); };
-        window.copyZPL = () => { navigator.clipboard.writeText(document.getElementById('finalZPL').value); window.showToast("Copiado!"); };
-    </script>
-    
-    <!-- FIXING THE MODULE SCRIPT FOR ZPL DATA -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        // CONFIG (Same as before)
-        const firebaseConfig = { apiKey: "AIzaSyB1DaTOer5_cZ-JT15FlZGapNV1nUDrhmE", authDomain: "acai-delibery.firebaseapp.com", databaseURL: "https://acai-delibery-default-rtdb.firebaseio.com", projectId: "acai-delibery", storageBucket: "acai-delibery.firebasestorage.app", messagingSenderId: "476733774850", appId: "1:476733774850:web:0549e47df6ee8dc2e79b1b", measurementId: "G-98GT80SD7J" };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // SYNC WITH FULL DATA SUPPORT
-        const qQueue = query(collection(db, "print_queue"), orderBy("created_at"));
-        
-        onSnapshot(qQueue, (snapshot) => {
-            window.queue = [];
-            snapshot.forEach((doc) => {
-                const d = doc.data();
-                // Try local find first, then fallback to saved fullData
-                const localP = window.findProd(d.codigo);
-                const savedP = d.fullData || {};
-                
-                window.queue.push({
-                    id: doc.id,
-                    COD: d.codigo,
-                    validade: d.validade,
-                    // Name priority: Local Excel -> Firebase Saved -> Temp Name -> Fallback
-                    NOM: localP?.NOM || savedP.NOM || d.tempName || 'Aguardando...',
-                    // Full data for ZPL generation
-                    DATA: localP || savedP || { NOM: d.tempName, RUA: '', RCK: '', LIN: '', COL: '' }
-                });
-            });
-            window.updateUI();
-        });
-
-        // GENERATE ZPL (USING CORRECT DATA SOURCE)
+        // ZPL GENERATION
         window.generateZPL = () => {
             if(window.queue.length===0) return alert("Fila vazia");
-            
-            let fullCode = "";
-            const clean = (t, type) => {
-                let s = String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-                if(type === 'RUA') s = s.replace(/^RUA\s*:?\s*/i, "");
-                if(type === 'RCK') s = s.replace(/^RACK\s*:?\s*/i, "");
-                if(type === 'LIN') s = s.replace(/^(LINHA|LIN)\s*:?\s*/i, "");
-                if(type === 'COL') s = s.replace(/^(COLUNA|COL)\s*:?\s*/i, "");
-                return s.trim().substring(0, 28);
-            };
-
-            for (let i = 0; i < window.queue.length; i += 2) {
-                const t = window.queue[i];
-                const b = window.queue[i + 1];
-                
-                // USE .DATA property which contains full info (Rua, Rack, etc)
-                const pt = t.DATA;
-                const pb = b ? b.DATA : null;
-
-                let z = `^XA\n^CI28^PW812^LL609^LH0,0^MD30\n`;
-                z += `^FX TOPO\n^FO20,5^A0N,100,90^FD${t.COD}^FS\n${t.validade ? `^FO235,-5^GB550,60,75^FS\n^FO250,5^A0N,95,90^FR^FDVAL: ${t.validade}^FS` : ''}\n^FO20,110^A0N,75,75^FB770,2,0,L,0^FD${clean(pt.NOM)}^FS\n^FO20,280^A0N,45,45^FDRUA: ${clean(pt.RUA,'RUA')} - RACK: ${clean(pt.RCK,'RCK')}^FS\n^FO20,330^A0N,45,45^FDLINHA: ${clean(pt.LIN,'LIN')} - COL: ${clean(pt.COL,'COL')}^FS\n^BY4,3,100^FO20,390^BCN,130,Y,N,N^FD${t.COD}^FS\n^FO640,370^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
-                
-                if (pb) {
-                    z += `^FX BASE\n^FO20,600^A0N,100,90^FD${b.COD}^FS\n${b.validade ? `^FO235,590^GB550,65,85^FS\n^FO250,600^A0N,95,90^FR^FDVAL: ${b.validade}^FS` : ''}\n^FO20,705^A0N,75,75^FB770,2,0,L,0^FD${clean(pb.NOM)}^FS\n^FO20,875^A0N,45,45^FDRUA: ${clean(pb.RUA,'RUA')} - RACK: ${clean(pb.RCK,'RCK')}^FS\n^FO20,925^A0N,45,45^FDLINHA: ${clean(pb.LIN,'LIN')} - COL: ${clean(pb.COL,'COL')}^FS\n^BY4,3,100^FO20,985^BCN,130,Y,N,N^FD${b.COD}^FS\n^FO640,965^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
-                }
-                
-                z += `^XZ\n`;
-                fullCode += z;
+            let full=""; const clean=(t,tp)=>{ let s=String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); if(tp==='R')s=s.replace(/^RUA:?\s*/i,""); if(tp==='K')s=s.replace(/^RACK:?\s*/i,""); if(tp==='L')s=s.replace(/^(LINHA|LIN):?\s*/i,""); if(tp==='C')s=s.replace(/^(COLUNA|COL):?\s*/i,""); return s.substring(0,28); };
+            for(let i=0; i<window.queue.length; i+=2) {
+                let t=window.queue[i], b=window.queue[i+1];
+                const pt=window.findProd(t.COD)||{NOM:t.NOM, RUA:'', RCK:'', LIN:'', COL:''};
+                const pb=b?(window.findProd(b.COD)||{NOM:b.NOM, RUA:'', RCK:'', LIN:'', COL:''}):null;
+                let z=`^XA\n^CI28^PW812^LL609^LH0,0^MD30\n`;
+                z+=`^FX TOPO\n^FO20,5^A0N,100,90^FD${t.COD}^FS\n${t.validade?`^FO235,-5^GB550,60,75^FS\n^FO250,5^A0N,95,90^FR^FDVAL: ${t.validade}^FS`:''}\n^FO20,110^A0N,75,75^FB770,2,0,L,0^FD${clean(pt.NOM)}^FS\n^FO20,280^A0N,45,45^FDRUA: ${clean(pt.RUA,'R')} - RACK: ${clean(pt.RCK,'K')}^FS\n^FO20,330^A0N,45,45^FDLINHA: ${clean(pt.LIN,'L')} - COL: ${clean(pt.COL,'C')}^FS\n^BY4,3,100^FO20,390^BCN,130,Y,N,N^FD${t.COD}^FS\n^FO620,370^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
+                if(pb){ z+=`^FX BOT\n^FO20,600^A0N,100,90^FD${b.COD}^FS\n${b.validade?`^FO235,590^GB550,65,85^FS\n^FO250,600^A0N,95,90^FR^FDVAL: ${b.validade}^FS`:''}\n^FO20,705^A0N,75,75^FB770,2,0,L,0^FD${clean(pb.NOM)}^FS\n^FO20,875^A0N,45,45^FDRUA: ${clean(pb.RUA,'R')} - RACK: ${clean(pb.RCK,'K')}^FS\n^FO20,925^A0N,45,45^FDLINHA: ${clean(pb.LIN,'L')} - COL: ${clean(pb.COL,'C')}^FS\n^BY4,3,100^FO20,985^BCN,130,Y,N,N^FD${b.COD}^FS\n^FO620,965^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`; }
+                z+=`^XZ\n`; full+=z;
             }
-
-            document.getElementById('finalZPL').value = fullCode;
+            document.getElementById('finalZPL').value=full;
             document.getElementById('finalZPL').classList.remove('hidden');
             window.showToast("ZPL Gerado!");
             
@@ -563,7 +449,13 @@
             }
         };
 
-        // ... (Keep existing Cloud, Add, Remove functions) ...
+        window.connectUSB = async () => { if(!navigator.serial)return alert("Use PC"); try{window.serialPort=await navigator.serial.requestPort(); await window.serialPort.open({baudRate:115200}); window.showToast("Conectado!"); window.updateUI();} catch(e){alert("Erro: "+e.message);} };
+        window.printDirect = async () => { if(!window.serialPort)return; const w=window.serialPort.writable.getWriter(); await w.write(new TextEncoder().encode(document.getElementById('finalZPL').value)); w.releaseLock(); window.showToast("Enviado!"); };
+        window.downloadFile = () => { const c=document.getElementById('finalZPL').value; if(!c)return; const a=document.createElement('a'); a.href=window.URL.createObjectURL(new Blob([c],{type:'text/plain'})); a.download=`etiquetas.txt`; a.click(); };
+        window.copyZPL = () => { navigator.clipboard.writeText(document.getElementById('finalZPL').value); window.showToast("Copiado!"); };
+        
+        // UTILS
+        window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
     </script>
 </body>
 </html>
