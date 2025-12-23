@@ -76,6 +76,18 @@
         .btn-action:active {
             transform: translateY(0);
         }
+        .device-badge {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(59, 130, 246, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            z-index: 100;
+        }
     </style>
 
     <script>
@@ -101,6 +113,11 @@
         <i class="fa-solid fa-spinner fa-spin"></i> CONECTANDO AO FIREBASE...
     </div>
 
+    <!-- DEVICE BADGE -->
+    <div id="deviceBadge" class="device-badge hidden">
+        <i class="fa-solid fa-mobile-screen"></i> <span id="deviceId">...</span>
+    </div>
+
     <!-- APP PRINCIPAL -->
     <div id="appContent" class="w-full max-w-6xl pb-10 mt-6">
         
@@ -109,9 +126,13 @@
                 <h1 class="text-3xl font-extrabold text-white tracking-tight">
                     <i class="fa-solid fa-fire text-orange-500 mr-2"></i>ZPL <span class="text-blue-500">Master</span>
                 </h1>
-                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Correção de Upload V15.0</p>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Sincronização Multi-Dispositivo V16.0</p>
             </div>
             <div class="flex items-center gap-3">
+                <div class="text-xs text-slate-500">
+                    <i class="fa-solid fa-users mr-1"></i>
+                    <span id="onlineCount">1</span> online
+                </div>
                 <button onclick="toggleModal('helpModal')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition border border-slate-600 flex items-center gap-2">
                     <i class="fa-solid fa-circle-question"></i> Ajuda
                 </button>
@@ -134,7 +155,12 @@
                         <h2 class="text-sm font-bold text-white uppercase">
                             <i class="fa-solid fa-database mr-2"></i> Base de Produtos
                         </h2>
-                        <span id="prodCount" class="bg-slate-800 text-slate-400 text-[10px] px-2 py-1 rounded">0 itens</span>
+                        <div class="flex items-center gap-2">
+                            <span id="prodCount" class="bg-slate-800 text-slate-400 text-[10px] px-2 py-1 rounded">0 itens</span>
+                            <span id="syncStatus" class="bg-blue-500 text-white text-[10px] px-2 py-1 rounded hidden">
+                                <i class="fa-solid fa-cloud"></i> Sinc.
+                            </span>
+                        </div>
                     </div>
                     
                     <div id="uploadArea">
@@ -152,15 +178,15 @@
                         <button onclick="window.saveToCloud()" class="w-full bg-orange-600 hover:bg-orange-500 text-white py-2 rounded text-xs font-bold shadow flex items-center justify-center gap-2 transition">
                             <i class="fa-solid fa-cloud-arrow-up"></i> Salvar Base no Firebase
                         </button>
-                        <p class="text-[9px] text-center text-slate-500 mt-2">Salve para usar em outros celulares sem o arquivo.</p>
+                        <p class="text-[9px] text-center text-slate-500 mt-2">Salve para sincronizar entre dispositivos.</p>
                     </div>
                     
                     <div class="flex gap-2 mt-4">
-                        <button onclick="window.loadFromCloud()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 rounded text-xs font-bold transition border border-slate-600">
-                            <i class="fa-solid fa-cloud-download"></i> Carregar da Nuvem
+                        <button onclick="window.loadFromCloud()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded text-xs font-bold transition border border-blue-700">
+                            <i class="fa-solid fa-cloud-download"></i> Sincronizar
                         </button>
                         <button onclick="window.resetData()" class="flex-1 bg-red-600 hover:bg-red-500 text-white py-2 rounded text-xs font-bold transition border border-red-700">
-                            <i class="fa-solid fa-trash"></i> Limpar Cache
+                            <i class="fa-solid fa-trash"></i> Limpar Local
                         </button>
                     </div>
                 </section>
@@ -182,9 +208,9 @@
                     <div id="lockScreen" class="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-center p-4">
                         <i class="fa-solid fa-lock text-3xl text-slate-600 mb-2"></i>
                         <p class="text-sm text-slate-300 font-bold">Carregue o Excel</p>
-                        <p class="text-[10px] text-slate-500">Ou clique em "Usar Nuvem" se já salvou</p>
-                        <button onclick="window.loadFromCloud()" class="mt-3 text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-white border border-slate-500">
-                            Usar Nuvem
+                        <p class="text-[10px] text-slate-500">Ou clique em "Sincronizar" se já salvou na nuvem</p>
+                        <button onclick="window.loadFromCloud()" class="mt-3 text-xs bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded text-white border border-blue-500">
+                            Sincronizar
                         </button>
                     </div>
 
@@ -251,10 +277,18 @@
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="font-bold text-white flex items-center gap-2">
                             <i class="fa-solid fa-layer-group text-blue-500"></i> Fila (<span id="queueBadge">0</span>)
+                            <span id="queueSync" class="text-[10px] bg-blue-500 text-white px-2 py-1 rounded hidden">
+                                <i class="fa-solid fa-bolt"></i> Sinc.
+                            </span>
                         </h2>
-                        <button onclick="window.clearQueue()" class="text-xs text-red-400 hover:text-red-300 font-bold underline cursor-pointer">
-                            <i class="fa-solid fa-trash-can mr-1"></i> Limpar Fila
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="window.clearQueue()" class="text-xs text-red-400 hover:text-red-300 font-bold underline cursor-pointer">
+                                <i class="fa-solid fa-trash-can mr-1"></i> Limpar
+                            </button>
+                            <button onclick="window.forceSync()" class="text-xs text-blue-400 hover:text-blue-300 font-bold underline cursor-pointer">
+                                <i class="fa-solid fa-rotate mr-1"></i> Sinc.
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Tabela -->
@@ -308,6 +342,10 @@
                 </div>
             </div>
         </main>
+        
+        <footer class="mt-8 text-center text-xs text-slate-600">
+            <p>Sistema sincronizado em tempo real | ID: <span id="sessionId" class="font-mono">...</span></p>
+        </footer>
     </div>
 
     <!-- TOAST -->
@@ -318,7 +356,21 @@
     <!-- FIREBASE MODULE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            getDocs, 
+            deleteDoc, 
+            doc, 
+            query, 
+            orderBy, 
+            onSnapshot, 
+            writeBatch,
+            serverTimestamp,
+            limit,
+            getCountFromServer
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // CONFIGURAÇÃO FIREBASE
         const firebaseConfig = {
@@ -334,58 +386,203 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        
+        // COLECÕES
+        const productsRef = collection(db, "products");
         const queueRef = collection(db, "print_queue");
+        const sessionsRef = collection(db, "active_sessions");
 
         // GLOBAL VARS
         window.inventory = [];
         window.queue = [];
         window.serialPort = null;
+        window.deviceId = null;
+        window.sessionId = null;
+        window.isOnline = false;
 
-        // INIT STATUS
-        const statusBox = document.getElementById('statusBox');
-        statusBox.classList.remove('bg-yellow-600');
-        statusBox.classList.add('bg-emerald-600');
-        statusBox.innerHTML = '<i class="fa-solid fa-fire"></i> FIREBASE CONECTADO';
-        setTimeout(() => statusBox.classList.add('hidden'), 2000);
+        // GERAR ID DO DISPOSITIVO
+        function generateDeviceId() {
+            let id = localStorage.getItem('device_id');
+            if (!id) {
+                id = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36);
+                localStorage.setItem('device_id', id);
+            }
+            return id;
+        }
 
-        // REALTIME SYNC
-        const qQueue = query(queueRef, orderBy("created_at"));
+        // GERAR SESSION ID
+        function generateSessionId() {
+            let session = localStorage.getItem('session_id');
+            if (!session) {
+                session = 'session_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                localStorage.setItem('session_id', session);
+            }
+            return session;
+        }
+
+        // INIT
+        window.deviceId = generateDeviceId();
+        window.sessionId = generateSessionId();
         
-        onSnapshot(qQueue, (snapshot) => {
-            window.queue = [];
-            snapshot.forEach((doc) => {
-                const d = doc.data();
-                // Usa os dados salvos na nuvem (fullData) se disponíveis, senão tenta local
-                const savedData = d.fullData || {};
-                const localData = window.findProd(d.codigo) || {};
-                
-                // Prioridade: Dados Salvos > Dados Locais
-                const finalData = {
-                    ...localData,
-                    ...savedData,
-                    NOM: savedData.NOM || localData.NOM || d.tempName || 'Aguardando Base...'
-                };
+        // MOSTRAR ID DO DISPOSITIVO
+        document.getElementById('deviceId').textContent = window.deviceId.substring(0, 8) + '...';
+        document.getElementById('deviceBadge').classList.remove('hidden');
+        document.getElementById('sessionId').textContent = window.sessionId.substring(0, 12) + '...';
 
-                window.queue.push({
-                    id: doc.id,
-                    COD: d.codigo,
-                    validade: d.validade,
-                    NOM: finalData.NOM,
-                    DATA: finalData
+        // INICIALIZAR STATUS
+        const statusBox = document.getElementById('statusBox');
+        setTimeout(() => {
+            statusBox.classList.remove('bg-yellow-600');
+            statusBox.classList.add('bg-emerald-600');
+            statusBox.innerHTML = '<i class="fa-solid fa-fire"></i> FIREBASE CONECTADO | SINCRONIZANDO...';
+            setTimeout(() => statusBox.classList.add('hidden'), 2000);
+        }, 1000);
+
+        // REGISTRAR SESSÃO ATIVA
+        async function registerSession() {
+            try {
+                await addDoc(sessionsRef, {
+                    deviceId: window.deviceId,
+                    sessionId: window.sessionId,
+                    lastActive: serverTimestamp(),
+                    userAgent: navigator.userAgent,
+                    timestamp: Date.now()
                 });
-            });
-            window.updateUI();
+                
+                // Limpar sessões antigas (mais de 5 minutos)
+                const sessionsQuery = query(sessionsRef, orderBy("timestamp"));
+                const sessionsSnap = await getDocs(sessionsQuery);
+                const now = Date.now();
+                const batch = writeBatch(db);
+                
+                sessionsSnap.forEach((sessionDoc) => {
+                    const data = sessionDoc.data();
+                    if (now - data.timestamp > 5 * 60 * 1000) { // 5 minutos
+                        batch.delete(sessionDoc.ref);
+                    }
+                });
+                
+                await batch.commit();
+                window.isOnline = true;
+                updateOnlineCount();
+                
+            } catch (error) {
+                console.error("Erro ao registrar sessão:", error);
+            }
+        }
+
+        // ATUALIZAR CONTADOR ONLINE
+        async function updateOnlineCount() {
+            try {
+                const snapshot = await getCountFromServer(sessionsRef);
+                document.getElementById('onlineCount').textContent = snapshot.data().count;
+            } catch (error) {
+                console.error("Erro ao contar sessões:", error);
+            }
+        }
+
+        // ESCUTAR SESSÕES EM TEMPO REAL
+        const sessionsQuery = query(sessionsRef, orderBy("timestamp", "desc"), limit(50));
+        onSnapshot(sessionsQuery, (snapshot) => {
+            updateOnlineCount();
         });
 
-        // --- UPLOAD EXCEL HANDLER (GLOBAL) ---
+        // SINCRONIZAR INVENTÁRIO EM TEMPO REAL
+        const productsQuery = query(productsRef, orderBy("COD"));
+        onSnapshot(productsQuery, (snapshot) => {
+            window.inventory = [];
+            snapshot.forEach((doc) => {
+                window.inventory.push(doc.data());
+            });
+            
+            if (window.inventory.length > 0) {
+                document.getElementById('syncStatus').classList.remove('hidden');
+                document.getElementById('prodCount').innerText = `${window.inventory.length} itens (Nuvem)`;
+                document.getElementById('prodCount').classList.replace('text-slate-400', 'text-emerald-400');
+                document.getElementById('lockScreen').classList.add('hidden');
+                document.getElementById('cloudArea').classList.remove('hidden');
+                
+                // Salvar no localStorage
+                saveLocalCache();
+                
+                // Atualizar nomes na fila
+                updateQueueWithNames();
+            }
+            
+            console.log("Inventário sincronizado:", window.inventory.length, "itens");
+        });
+
+        // SINCRONIZAR FILA EM TEMPO REAL
+        const queueQuery = query(queueRef, orderBy("created_at"));
+        onSnapshot(queueQuery, (snapshot) => {
+            document.getElementById('queueSync').classList.remove('hidden');
+            
+            window.queue = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                
+                // Buscar produto no inventário local
+                let productData = window.findProd(data.codigo) || {};
+                
+                window.queue.push({
+                    id: doc.id,
+                    COD: data.codigo,
+                    validade: data.validade || '',
+                    NOM: data.tempName || productData.NOM || 'Produto não encontrado',
+                    DATA: {
+                        ...productData,
+                        ...data.fullData
+                    },
+                    deviceId: data.deviceId || 'unknown',
+                    created_at: data.created_at
+                });
+            });
+            
+            window.updateUI();
+            
+            // Ocultar badge de sincronização após 2 segundos
+            setTimeout(() => {
+                document.getElementById('queueSync').classList.add('hidden');
+            }, 2000);
+        });
+
+        // ATUALIZAR NOMES NA FILA COM DADOS SINCRONIZADOS
+        function updateQueueWithNames() {
+            if (window.queue.length > 0) {
+                window.queue.forEach(async (item, index) => {
+                    const product = window.findProd(item.COD);
+                    if (product && product.NOM !== item.NOM) {
+                        // Atualizar o nome na fila local
+                        window.queue[index].NOM = product.NOM;
+                        window.queue[index].DATA = product;
+                        
+                        // Atualizar no Firebase se for nosso item
+                        if (item.deviceId === window.deviceId) {
+                            try {
+                                const docRef = doc(db, "print_queue", item.id);
+                                await writeBatch(db).update(docRef, {
+                                    tempName: product.NOM,
+                                    fullData: product
+                                });
+                            } catch (error) {
+                                console.error("Erro ao atualizar nome:", error);
+                            }
+                        }
+                    }
+                });
+                window.updateUI();
+            }
+        }
+
+        // --- UPLOAD EXCEL HANDLER ---
         window.handleFileUpload = async (input) => {
-            const f = input.files[0];
-            if (!f) return;
+            const file = input.files[0];
+            if (!file) return;
 
             document.getElementById('uploadLoader').classList.remove('hide');
             
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, {type: 'array'});
@@ -397,19 +594,19 @@
 
                     window.inventory = json.slice(1).map(x => {
                         if(!x[0]) return null;
-                        const c = v => String(v || "").trim().toUpperCase();
+                        const clean = v => String(v || "").trim().toUpperCase();
                         return { 
-                            COD: c(x[0]), 
-                            NOM: c(x[1]), 
-                            RUA: c(x[4]), 
-                            RCK: c(x[5]), 
-                            LIN: c(x[6]), 
-                            COL: c(x[7]) 
+                            COD: clean(x[0]), 
+                            NOM: clean(x[1]), 
+                            RUA: clean(x[4]), 
+                            RCK: clean(x[5]), 
+                            LIN: clean(x[6]), 
+                            COL: clean(x[7]) 
                         };
                     }).filter(i => i !== null);
 
                     // Salvar no localStorage
-                    window.saveLocalCache();
+                    saveLocalCache();
                     
                     document.getElementById('lockScreen').classList.add('hidden');
                     document.getElementById('prodCount').innerText = `${window.inventory.length} produtos`;
@@ -417,41 +614,57 @@
                     document.getElementById('cloudArea').classList.remove('hidden');
                     
                     window.showToast("Excel Carregado!");
-                    window.updateUI(); // Refresh queue names
+                    updateQueueWithNames();
                     
                 } catch(err) {
                     alert("Erro ao ler Excel: " + err.message);
                 } finally {
                     document.getElementById('uploadLoader').classList.add('hide');
-                    input.value = ""; // Reset input
+                    input.value = "";
                 }
             };
-            reader.readAsArrayBuffer(f);
+            reader.readAsArrayBuffer(file);
         };
 
         // --- CLOUD FUNCTIONS ---
         window.saveToCloud = async () => {
             if(window.inventory.length === 0) return alert("Carregue Excel primeiro!");
-            if(!confirm("Substituir dados na nuvem?")) return;
+            if(!confirm("Enviar dados para a nuvem? Todos os dispositivos receberão esta base.")) return;
             
             document.getElementById('uploadLoader').classList.remove('hide');
             try {
-                // Limpeza "pobre" (apaga um por um, firestore não tem 'truncate')
-                const q = await getDocs(collection(db, "products"));
-                const batchDel = writeBatch(db);
-                q.forEach((doc) => { batchDel.delete(doc.ref); });
-                await batchDel.commit();
-
-                // Adiciona novos (Limitado a 400 por vez para não estourar)
-                const batchAdd = writeBatch(db);
-                window.inventory.slice(0, 450).forEach((item) => { 
-                    const ref = doc(collection(db, "products"));
-                    batchAdd.set(ref, item);
+                // Limpar dados antigos
+                const oldProducts = await getDocs(productsRef);
+                const deleteBatch = writeBatch(db);
+                oldProducts.forEach((doc) => { 
+                    deleteBatch.delete(doc.ref); 
                 });
-                await batchAdd.commit();
-                window.showToast("Salvo no Firebase!");
-            } catch(e) { 
-                alert("Erro ao salvar: " + e.message); 
+                await deleteBatch.commit();
+
+                // Adicionar novos produtos em lotes
+                const BATCH_SIZE = 400;
+                for (let i = 0; i < window.inventory.length; i += BATCH_SIZE) {
+                    const batch = writeBatch(db);
+                    const batchItems = window.inventory.slice(i, i + BATCH_SIZE);
+                    
+                    batchItems.forEach((item) => { 
+                        const ref = doc(productsRef);
+                        batch.set(ref, {
+                            ...item,
+                            uploadedBy: window.deviceId,
+                            uploadTime: Date.now()
+                        });
+                    });
+                    
+                    await batch.commit();
+                    console.log(`Lote ${Math.floor(i/BATCH_SIZE) + 1} enviado`);
+                }
+                
+                document.getElementById('syncStatus').classList.remove('hidden');
+                window.showToast("Base enviada para a nuvem!");
+                
+            } catch(error) { 
+                alert("Erro ao salvar: " + error.message); 
             }
             document.getElementById('uploadLoader').classList.add('hide');
         };
@@ -459,46 +672,60 @@
         window.loadFromCloud = async () => {
             document.getElementById('uploadLoader').classList.remove('hide');
             try {
-                const q = await getDocs(collection(db, "products"));
+                const querySnapshot = await getDocs(productsRef);
                 window.inventory = [];
-                q.forEach((doc) => { window.inventory.push(doc.data()); });
+                querySnapshot.forEach((doc) => { 
+                    window.inventory.push(doc.data()); 
+                });
                 
                 if(window.inventory.length > 0) {
                     // Salvar no localStorage
-                    window.saveLocalCache();
+                    saveLocalCache();
                     
                     document.getElementById('lockScreen').classList.add('hidden');
                     document.getElementById('prodCount').innerText = `${window.inventory.length} itens (Nuvem)`;
                     document.getElementById('prodCount').classList.replace('text-slate-400', 'text-emerald-400');
-                    window.updateUI();
-                    window.showToast("Dados carregados da nuvem!");
+                    document.getElementById('syncStatus').classList.remove('hidden');
+                    
+                    updateQueueWithNames();
+                    window.showToast("Dados sincronizados da nuvem!");
                 } else {
                     alert("Banco vazio. Carregue um Excel primeiro.");
                 }
-            } catch(e) { 
-                alert("Erro ao baixar: " + e.message); 
+            } catch(error) { 
+                alert("Erro ao sincronizar: " + error.message); 
             }
             document.getElementById('uploadLoader').classList.add('hide');
         };
 
+        // FORÇAR SINCRONIZAÇÃO
+        window.forceSync = async () => {
+            document.getElementById('queueSync').classList.remove('hidden');
+            await window.loadFromCloud();
+            setTimeout(() => {
+                document.getElementById('queueSync').classList.add('hidden');
+            }, 1000);
+        };
+
         // --- ACTIONS ---
         window.addItemVal = async () => {
-            const c = document.getElementById('valCode').value.trim();
-            const v = document.getElementById('valDate').value.trim();
+            const code = document.getElementById('valCode').value.trim();
+            const date = document.getElementById('valDate').value.trim();
             
-            if(!c) return alert("Digite um código!");
-            if(!v || v.length < 7) return alert("Data inválida. Use MM/AAAA");
+            if(!code) return alert("Digite um código!");
+            if(!date || date.length < 7) return alert("Data inválida. Use MM/AAAA");
             
-            const prod = window.findProd(c);
-            // Salva dados completos na fila
-            const pData = prod || { NOM: 'Desconhecido', RUA:'', RCK:'', LIN:'', COL:'' };
+            const product = window.findProd(code);
+            const productData = product || { NOM: 'Desconhecido', RUA:'', RCK:'', LIN:'', COL:'' };
             
             try {
                 await addDoc(queueRef, { 
-                    codigo: c, 
-                    validade: v, 
-                    tempName: pData.NOM, 
-                    fullData: pData, 
+                    codigo: code, 
+                    validade: date, 
+                    tempName: productData.NOM, 
+                    fullData: productData,
+                    deviceId: window.deviceId,
+                    sessionId: window.sessionId,
                     created_at: Date.now() 
                 });
                 
@@ -507,35 +734,38 @@
                 document.getElementById('valPreview').innerText = ""; 
                 document.getElementById('valCode').focus();
                 window.showToast("Adicionado à fila!");
-            } catch(e) {
-                alert("Erro ao adicionar: " + e.message);
+                
+            } catch(error) {
+                alert("Erro ao adicionar: " + error.message);
             }
         };
 
         window.addItemEnd = async () => {
-            const cInput = document.getElementById('endCode').value.trim();
-            const c = window.extractEAN(cInput);
+            const inputCode = document.getElementById('endCode').value.trim();
+            const code = window.extractEAN(inputCode);
             
-            if(!c) return alert("Digite um código!");
+            if(!code) return alert("Digite um código!");
             
-            const prod = window.findProd(c);
-            const pData = prod || { NOM: 'Desconhecido', RUA:'', RCK:'', LIN:'', COL:'' };
+            const product = window.findProd(code);
+            const productData = product || { NOM: 'Desconhecido', RUA:'', RCK:'', LIN:'', COL:'' };
             
-            if (prod || confirm("Produto não encontrado na base. Adicionar mesmo assim?")) {
+            if (product || confirm("Produto não encontrado na base. Adicionar mesmo assim?")) {
                 try {
                     await addDoc(queueRef, { 
-                        codigo: c, 
+                        codigo: code, 
                         validade: "", 
-                        tempName: pData.NOM, 
-                        fullData: pData, 
+                        tempName: productData.NOM, 
+                        fullData: productData,
+                        deviceId: window.deviceId,
+                        sessionId: window.sessionId,
                         created_at: Date.now() 
                     });
                     document.getElementById('endCode').value = ""; 
                     document.getElementById('endPreview').innerText = "";
                     document.getElementById('endCode').focus();
                     window.showToast("Adicionado à fila!");
-                } catch(e) {
-                    alert("Erro ao adicionar: " + e.message);
+                } catch(error) {
+                    alert("Erro ao adicionar: " + error.message);
                 }
             }
         };
@@ -557,14 +787,16 @@
                 let count = 0;
                 
                 codes.forEach(code => {
-                    const p = window.findProd(code);
-                    const pData = p || { NOM: 'Desconhecido', RUA:'', RCK:'', LIN:'', COL:'' };
+                    const product = window.findProd(code);
+                    const productData = product || { NOM: 'Desconhecido', RUA:'', RCK:'', LIN:'', COL:'' };
                     const ref = doc(queueRef);
                     batch.set(ref, { 
                         codigo: code, 
                         validade: "", 
-                        tempName: pData.NOM, 
-                        fullData: pData, 
+                        tempName: productData.NOM, 
+                        fullData: productData,
+                        deviceId: window.deviceId,
+                        sessionId: window.sessionId,
                         created_at: Date.now() + count 
                     });
                     count++;
@@ -573,8 +805,8 @@
                 await batch.commit();
                 document.getElementById('endList').value = ""; 
                 window.showToast(`${count} itens adicionados!`);
-            } catch(e) {
-                alert("Erro ao processar lista: " + e.message);
+            } catch(error) {
+                alert("Erro ao processar lista: " + error.message);
             }
         };
 
@@ -583,38 +815,39 @@
                 try {
                     await deleteDoc(doc(db, "print_queue", id));
                     window.showToast("Item removido!");
-                } catch(e) {
-                    alert("Erro ao remover: " + e.message);
+                } catch(error) {
+                    alert("Erro ao remover: " + error.message);
                 }
             }
         };
 
         window.clearQueue = async () => { 
-            if(confirm("Limpar toda a fila de impressão?")) { 
+            if(confirm("Limpar toda a fila de impressão? (Esta ação afeta todos os dispositivos)")) { 
                 try {
-                    const q = await getDocs(queueRef); 
+                    const querySnapshot = await getDocs(queueRef); 
                     const batch = writeBatch(db); 
-                    q.forEach((d) => batch.delete(d.ref)); 
+                    querySnapshot.forEach((doc) => batch.delete(doc.ref)); 
                     await batch.commit(); 
                     window.showToast("Fila limpa!");
-                } catch(e) {
-                    alert("Erro ao limpar fila: " + e.message);
+                } catch(error) {
+                    alert("Erro ao limpar fila: " + error.message);
                 }
             } 
         };
 
         // --- HELPERS ---
-        window.saveLocalCache = () => {
+        function saveLocalCache() {
             localStorage.setItem('inventory_cache', JSON.stringify({
                 data: window.inventory,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                deviceId: window.deviceId
             }));
-        };
+        }
 
-        window.loadLocalCache = () => {
+        function loadLocalCache() {
             const cache = localStorage.getItem('inventory_cache');
             if (cache) {
-                const { data, timestamp } = JSON.parse(cache);
+                const { data, timestamp, deviceId } = JSON.parse(cache);
                 // Usar cache se tiver menos de 24 horas
                 if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
                     window.inventory = data;
@@ -622,7 +855,7 @@
                 }
             }
             return false;
-        };
+        }
 
         window.resetData = () => { 
             if(confirm("Limpar cache local?")) {
@@ -632,87 +865,94 @@
                 document.getElementById('prodCount').innerText = "0 itens";
                 document.getElementById('prodCount').classList.replace('text-emerald-400', 'text-slate-400');
                 document.getElementById('cloudArea').classList.add('hidden');
+                document.getElementById('syncStatus').classList.add('hidden');
                 window.showToast("Cache limpo!");
             }
         };
 
-        window.findProd = (c) => {
-            if(!c) return null;
-            // Primeiro busca exata
-            let found = window.inventory.find(i => i.COD === c);
+        window.findProd = (code) => {
+            if(!code) return null;
+            
+            // Busca exata
+            let found = window.inventory.find(item => item.COD === code);
+            
+            // Tenta como número
             if(!found) {
-                // Tenta buscar como número
                 try {
-                    const n = parseInt(c);
-                    if(!isNaN(n)) {
-                        found = window.inventory.find(i => parseInt(i.COD) === n);
+                    const numCode = parseInt(code);
+                    if(!isNaN(numCode)) {
+                        found = window.inventory.find(item => parseInt(item.COD) === numCode);
                     }
-                } catch(e) {}
+                } catch(error) {}
             }
+            
             // Busca por substring
             if(!found) {
-                found = window.inventory.find(i => i.COD.includes(c) || i.NOM.toLowerCase().includes(c.toLowerCase()));
+                found = window.inventory.find(item => 
+                    item.COD.includes(code) || 
+                    item.NOM.toLowerCase().includes(code.toLowerCase())
+                );
             }
+            
             return found || null;
         };
 
-        window.extractEAN = (v) => {
-            if(!v) return '';
-            // Remove não dígitos
-            const digits = v.replace(/\D/g,'');
+        window.extractEAN = (value) => {
+            if(!value) return '';
+            const digits = value.replace(/\D/g,'');
             // Para EAN13, pega os últimos dígitos (ajuste conforme necessidade)
             if(digits.length >= 13) {
-                // Retorna os últimos 6 dígitos (ajustável)
                 return digits.slice(-6);
             }
             return digits;
         };
 
         window.maskDate = (el) => { 
-            let v = el.value.replace(/\D/g,'');
-            if(v.length > 6) v = v.substring(0,6);
-            if(v.length > 2) {
-                const mes = v.substring(0,2);
-                const ano = v.substring(2,6);
+            let value = el.value.replace(/\D/g,'');
+            if(value.length > 6) value = value.substring(0,6);
+            if(value.length > 2) {
+                const month = value.substring(0,2);
+                const year = value.substring(2,6);
+                
                 // Valida mês
-                if(parseInt(mes) < 1 || parseInt(mes) > 12) {
+                if(parseInt(month) < 1 || parseInt(month) > 12) {
                     el.style.borderColor = "#ef4444";
                 } else {
                     el.style.borderColor = "";
                 }
-                v = mes + '/' + ano;
+                value = month + '/' + year;
             }
-            el.value = v;
+            el.value = value;
         };
         
-        window.checkCode = (el, tid) => {
-            let v = el.value.trim();
-            let fv = v;
+        window.checkCode = (input, previewId) => {
+            let value = input.value.trim();
+            let extractedValue = value;
             
             // Extrai EAN se necessário
-            if(v.length >= 12) {
-                fv = window.extractEAN(v);
-                if(fv !== v) {
-                    el.value = fv;
+            if(value.length >= 12) {
+                extractedValue = window.extractEAN(value);
+                if(extractedValue !== value) {
+                    input.value = extractedValue;
                 }
             }
             
-            const p = window.findProd(fv); 
-            const prev = document.getElementById(tid);
-            if(p) { 
-                prev.innerText = p.NOM; 
-                prev.classList.replace('text-slate-500', 'text-emerald-400'); 
+            const product = window.findProd(extractedValue); 
+            const preview = document.getElementById(previewId);
+            if(product) { 
+                preview.innerText = product.NOM; 
+                preview.classList.replace('text-slate-500', 'text-emerald-400'); 
             } else { 
-                prev.innerText = "Produto não cadastrado"; 
-                prev.classList.replace('text-emerald-400', 'text-slate-500'); 
+                preview.innerText = "Produto não cadastrado"; 
+                preview.classList.replace('text-emerald-400', 'text-slate-500'); 
             }
         };
         
         window.handleEnter = (e) => { 
             if(e.key === "Enter") { 
-                if(document.activeElement.id === 'valCode') {
+                if(e.target.id === 'valCode') {
                     document.getElementById('valDate').focus();
-                } else if(document.activeElement.id === 'valDate') {
+                } else if(e.target.id === 'valDate') {
                     window.addItemVal();
                 }
             } 
@@ -723,7 +963,7 @@
         };
 
         window.updateUI = () => {
-            const tb = document.getElementById('queueTable'); 
+            const table = document.getElementById('queueTable'); 
             const badge = document.getElementById('queueBadge');
             badge.innerText = window.queue.length;
             
@@ -731,18 +971,19 @@
             const zplArea = document.getElementById('finalZPL');
             if(window.queue.length === 0) {
                 zplArea.classList.add('hidden');
-                tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center italic opacity-50">Fila vazia</td></tr>';
+                table.innerHTML = '<tr><td colspan="4" class="p-8 text-center italic opacity-50">Fila vazia</td></tr>';
             } else {
-                tb.innerHTML = window.queue.map((i, idx) => `
+                table.innerHTML = window.queue.map((item, index) => `
                     <tr class="border-b border-slate-700/50 hover:bg-slate-800/50">
-                        <td class="p-3 text-slate-500 font-mono text-xs">${idx+1}</td>
+                        <td class="p-3 text-slate-500 font-mono text-xs">${index + 1}</td>
                         <td class="p-3">
-                            <div class="font-bold text-white text-xs">${i.COD}</div>
-                            <div class="text-[10px] text-slate-400 truncate w-32">${i.NOM}</div>
+                            <div class="font-bold text-white text-xs">${item.COD}</div>
+                            <div class="text-[10px] text-slate-400 truncate w-32">${item.NOM}</div>
+                            <div class="text-[8px] text-slate-600">${item.deviceId === window.deviceId ? 'Você' : 'Outro'}</div>
                         </td>
-                        <td class="p-3 text-emerald-400 font-mono text-xs text-center">${i.validade||'-'}</td>
+                        <td class="p-3 text-emerald-400 font-mono text-xs text-center">${item.validade || '-'}</td>
                         <td class="p-3 text-right">
-                            <button onclick="window.removeItem('${i.id}')" class="text-red-400 hover:text-white p-1">
+                            <button onclick="window.removeItem('${item.id}')" class="text-red-400 hover:text-white p-1">
                                 <i class="fa-solid fa-times"></i>
                             </button>
                         </td>
@@ -751,87 +992,66 @@
             
             // Ativa/desativa botões
             const hasQueue = window.queue.length > 0;
-            const zplGenerated = zplArea.value.trim().length > 0;
+            const hasZPL = zplArea.value.trim().length > 0;
             
             // Botão Download
             const btnDownload = document.getElementById('btnDownload');
-            if(hasQueue) {
-                btnDownload.disabled = false;
-                btnDownload.classList.replace('bg-slate-700','bg-blue-600');
-                btnDownload.classList.remove('cursor-not-allowed');
-            } else {
-                btnDownload.disabled = true;
-                btnDownload.classList.replace('bg-blue-600','bg-slate-700');
-                btnDownload.classList.add('cursor-not-allowed');
-            }
+            btnDownload.disabled = !hasZPL;
+            btnDownload.classList.toggle('bg-slate-700', !hasZPL);
+            btnDownload.classList.toggle('bg-blue-600', hasZPL);
+            btnDownload.classList.toggle('cursor-not-allowed', !hasZPL);
             
             // Botão Copiar
             const btnCopy = document.getElementById('btnCopy');
-            if(zplGenerated) {
-                btnCopy.disabled = false;
-                btnCopy.classList.replace('bg-slate-700','bg-slate-600');
-                btnCopy.classList.remove('cursor-not-allowed');
-            } else {
-                btnCopy.disabled = true;
-                btnCopy.classList.replace('bg-slate-600','bg-slate-700');
-                btnCopy.classList.add('cursor-not-allowed');
-            }
+            btnCopy.disabled = !hasZPL;
+            btnCopy.classList.toggle('bg-slate-700', !hasZPL);
+            btnCopy.classList.toggle('bg-slate-600', hasZPL);
+            btnCopy.classList.toggle('cursor-not-allowed', !hasZPL);
             
             // Botão Direto USB
             const btnDirect = document.getElementById('btnDirect');
-            if(window.serialPort && hasQueue) {
-                btnDirect.disabled = false;
-                btnDirect.classList.replace('bg-slate-700','bg-emerald-600');
-                btnDirect.classList.remove('cursor-not-allowed');
-            } else {
-                btnDirect.disabled = true;
-                btnDirect.classList.replace('bg-emerald-600','bg-slate-700');
-                btnDirect.classList.add('cursor-not-allowed');
-            }
+            btnDirect.disabled = !(window.serialPort && hasZPL);
+            btnDirect.classList.toggle('bg-slate-700', !(window.serialPort && hasZPL));
+            btnDirect.classList.toggle('bg-emerald-600', (window.serialPort && hasZPL));
+            btnDirect.classList.toggle('cursor-not-allowed', !(window.serialPort && hasZPL));
         };
 
-        window.setMode = (m) => {
-            document.getElementById('formValidade').classList.toggle('hidden', m !== 'validade'); 
-            document.getElementById('formEndereco').classList.toggle('hidden', m !== 'endereco');
+        window.setMode = (mode) => {
+            const isValidadeMode = mode === 'validade';
+            document.getElementById('formValidade').classList.toggle('hidden', !isValidadeMode); 
+            document.getElementById('formEndereco').classList.toggle('hidden', isValidadeMode);
             
-            const bV = document.getElementById('btnVal');
-            const bE = document.getElementById('btnEnd');
+            const btnVal = document.getElementById('btnVal');
+            const btnEnd = document.getElementById('btnEnd');
             
-            if(m === 'validade') {
-                bV.className = "flex-1 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-lg transition";
-                bE.className = "flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition";
+            if(isValidadeMode) {
+                btnVal.className = "flex-1 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-lg transition";
+                btnEnd.className = "flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition";
                 document.getElementById('valCode').focus();
             } else {
-                bE.className = "flex-1 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-lg transition";
-                bV.className = "flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition";
+                btnEnd.className = "flex-1 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-lg transition";
+                btnVal.className = "flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition";
                 window.switchTab('unit');
             }
         };
 
-        window.switchTab = (t) => { 
-            if(t === 'unit'){
-                document.getElementById('singleEntry').classList.remove('hidden');
-                document.getElementById('massEntry').classList.add('hidden');
+        window.switchTab = (tab) => { 
+            const isUnitTab = tab === 'unit';
+            document.getElementById('singleEntry').classList.toggle('hidden', !isUnitTab);
+            document.getElementById('massEntry').classList.toggle('hidden', isUnitTab);
+            
+            if(isUnitTab) {
                 document.getElementById('endCode').focus();
             } else {
-                document.getElementById('singleEntry').classList.add('hidden');
-                document.getElementById('massEntry').classList.remove('hidden');
                 document.getElementById('endList').focus();
-            } 
-        };
-
-        window.toggleModal = (id) => {
-            const modal = document.getElementById(id);
-            if(modal) {
-                modal.classList.toggle('hidden');
             }
         };
 
-        window.showToast = (msg) => { 
-            const t = document.getElementById('toast'); 
-            t.querySelector('span').innerText = msg; 
-            t.classList.remove('translate-y-10', 'opacity-0'); 
-            setTimeout(() => t.classList.add('translate-y-10', 'opacity-0'), 2500); 
+        window.showToast = (message) => { 
+            const toast = document.getElementById('toast'); 
+            toast.querySelector('span').textContent = message; 
+            toast.classList.remove('translate-y-10', 'opacity-0'); 
+            setTimeout(() => toast.classList.add('translate-y-10', 'opacity-0'), 2500); 
         };
 
         // ZPL GENERATION
@@ -850,8 +1070,8 @@
             
             // Processa de 2 em 2 itens (etiquetas duplas)
             for(let i = 0; i < window.queue.length; i += 2) {
-                let item1 = window.queue[i];
-                let item2 = window.queue[i + 1];
+                const item1 = window.queue[i];
+                const item2 = window.queue[i + 1];
                 
                 const data1 = item1.DATA || {NOM: item1.NOM, RUA:'', RCK:'', LIN:'', COL:''};
                 const data2 = item2 ? (item2.DATA || {NOM: item2.NOM, RUA:'', RCK:'', LIN:'', COL:''}) : null;
@@ -913,8 +1133,8 @@
                 await window.serialPort.open({baudRate: 115200}); 
                 window.showToast("Impressora conectada!");
                 window.updateUI();
-            } catch(e) {
-                alert("Erro ao conectar: " + e.message);
+            } catch(error) {
+                alert("Erro ao conectar: " + error.message);
                 window.serialPort = null;
             }
         };
@@ -934,8 +1154,8 @@
                 await writer.write(new TextEncoder().encode(zpl));
                 writer.releaseLock();
                 window.showToast("Enviado para impressora!");
-            } catch(e) {
-                alert("Erro ao imprimir: " + e.message);
+            } catch(error) {
+                alert("Erro ao imprimir: " + error.message);
             }
         };
 
@@ -961,13 +1181,19 @@
             
             navigator.clipboard.writeText(zpl)
                 .then(() => window.showToast("ZPL copiado!"))
-                .catch(err => alert("Erro ao copiar: " + err));
+                .catch(error => alert("Erro ao copiar: " + error));
         };
 
         // INICIALIZAÇÃO
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Registrar sessão
+            await registerSession();
+            
+            // Atualizar sessão a cada minuto
+            setInterval(registerSession, 60000);
+            
             // Tenta carregar do cache local
-            if(window.loadLocalCache()) {
+            if(loadLocalCache()) {
                 document.getElementById('lockScreen').classList.add('hidden');
                 document.getElementById('prodCount').innerText = `${window.inventory.length} itens (Cache)`;
                 document.getElementById('prodCount').classList.replace('text-slate-400', 'text-emerald-400');
@@ -976,6 +1202,13 @@
             
             // Foco no código de validade
             document.getElementById('valCode').focus();
+        });
+
+        // ATUALIZAR ONLINE QUANDO A PÁGINA FOR VISÍVEL
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                registerSession();
+            }
         });
     </script>
 </body>
