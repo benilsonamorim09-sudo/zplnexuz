@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZPL Master | Local</title>
+    <title>ZPL Master | Firebase</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,15 +21,11 @@
         :root { --accent: #3b82f6; }
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; overflow-x: hidden; }
         
-        .glass-panel { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); transition: all 0.3s ease; }
-        .input-std { background: #1e293b; border: 1px solid #334155; color: white; transition: all 0.2s; }
-        .input-std:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1); outline: none; }
-        
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        
+        .glass-panel { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); transition: all 0.3s ease; }
+        .input-std { background: #1e293b; border: 1px solid #334155; color: white; transition: all 0.2s; outline: none; font-family: 'JetBrains Mono', monospace; }
+        .input-std:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1); }
+        .loader-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 50; }
+        .loader-overlay.hide { display: none; }
         .tab-bg { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); background-color: var(--accent); }
     </style>
 
@@ -39,445 +35,389 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center pt-10 pb-4 px-4 relative">
 
-    <div class="fixed top-0 left-0 w-full bg-blue-900/30 border-b border-blue-500/30 text-blue-400 text-center py-2 z-[60] backdrop-blur-md">
-        <p class="text-[10px] md:text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-            <i class="fa-solid fa-hard-drive"></i> Modo Offline (Dados Locais)
-        </p>
+    <!-- STATUS BAR -->
+    <div id="statusBox" class="fixed top-0 left-0 w-full bg-yellow-600 text-white text-center py-2 font-bold z-50 text-xs shadow-lg transition-all duration-500">
+        <i class="fa-solid fa-spinner fa-spin"></i> CONECTANDO AO FIREBASE...
     </div>
 
     <!-- APP PRINCIPAL -->
-    <div id="appContent" class="w-full max-w-6xl pb-10 mt-4">
+    <div id="appContent" class="w-full max-w-6xl pb-10">
         
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 mt-8">
             <div class="text-center md:text-left">
-                <h1 class="text-3xl font-extrabold text-white tracking-tight">
-                    <i class="fa-solid fa-print text-accent mr-2"></i>ZPL <span class="text-accent">Master</span>
-                </h1>
-                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Versão Local • Benilson Amorim</p>
+                <h1 class="text-3xl font-extrabold text-white tracking-tight"><i class="fa-solid fa-fire text-orange-500 mr-2"></i>ZPL <span class="text-accent">Master</span></h1>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Sincronização em Tempo Real</p>
             </div>
             <div class="flex items-center gap-3">
-                <button onclick="clearAllData()" class="bg-red-900/30 hover:bg-red-600 text-red-200 hover:text-white px-4 py-2 rounded-lg text-xs font-bold border border-red-900/50 flex items-center gap-2">
-                    <i class="fa-solid fa-trash"></i> Resetar Tudo
-                </button>
-                <button onclick="toggleModal('helpModal')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow border border-slate-600 flex items-center gap-2">
-                    <i class="fa-solid fa-circle-question"></i> Ajuda
-                </button>
+                <button onclick="toggleModal('helpModal')" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-xs font-bold transition border border-slate-600 flex items-center gap-2"><i class="fa-solid fa-circle-question"></i> Ajuda</button>
             </div>
         </header>
 
         <main class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-            <!-- ESQUERDA -->
+            
+            <!-- ESQUERDA: Controles -->
             <div class="lg:col-span-5 space-y-6">
                 
-                <!-- UPLOAD -->
-                <section class="glass-panel rounded-2xl p-6 relative overflow-hidden flex flex-col justify-center">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="font-bold text-white text-sm"><i class="fa-solid fa-database mr-2 text-slate-400"></i> Base de Produtos</h2>
-                        <span id="dbCount" class="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-400">0 itens</span>
-                    </div>
-
-                    <label class="flex items-center justify-center w-full p-4 border-2 border-dashed border-slate-600 rounded-xl cursor-pointer hover:border-accent hover:bg-slate-800/50 transition group">
-                        <div class="text-center">
-                            <i class="fa-solid fa-file-excel text-2xl text-green-500 mb-2 group-hover:scale-110 transition-transform"></i>
-                            <p class="text-xs text-slate-300 font-bold">Carregar Excel</p>
-                            <p class="text-[10px] text-slate-500">Colunas: A, B, E, F, G, H</p>
-                        </div>
-                        <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden">
-                    </label>
-
-                    <div id="loadingBar" class="hidden w-full bg-slate-700 h-1 mt-4 rounded overflow-hidden">
-                        <div class="bg-accent h-full w-1/2 animate-[pulse_1s_infinite]"></div>
-                    </div>
-                </section>
-
-                <!-- MODOS -->
-                <section class="glass-panel rounded-2xl p-1 flex gap-1 bg-slate-900/40">
-                    <button onclick="setMode('validade')" id="btnVal" class="flex-1 py-3 rounded-xl text-sm font-bold bg-accent text-white shadow-lg transition">Validade</button>
-                    <button onclick="setMode('endereco')" id="btnEnd" class="flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition">Endereço</button>
-                </section>
-
-                <!-- INPUTS -->
-                <section class="glass-panel rounded-2xl p-6 relative min-h-[300px] flex flex-col">
+                <!-- 1. Fonte de Dados -->
+                <section class="glass-panel rounded-2xl p-0 relative overflow-hidden min-h-[140px] flex flex-col justify-center">
+                    <div id="uploadLoader" class="loader-overlay hide"><i class="fa-solid fa-circle-notch fa-spin text-4xl text-accent mb-2"></i><p class="text-sm font-bold text-white">Processando...</p></div>
                     
-                    <!-- Bloqueio se não tiver dados -->
+                    <div id="sourceSelection" class="p-5">
+                        <h2 class="font-bold text-white text-sm mb-3 flex items-center gap-2"><i class="fa-solid fa-database text-slate-400"></i> Fonte de Dados</h2>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="cursor-pointer bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-lg text-xs font-bold text-center transition border border-slate-600 hover:border-emerald-500 group">
+                                <i class="fa-solid fa-file-excel text-xl block mb-1 text-green-400 group-hover:scale-110 transition-transform"></i> Upload Excel
+                                <input type="file" id="fileInput" accept=".xlsx, .xls" class="hidden">
+                            </label>
+                            <button onclick="window.loadFromCloud()" class="bg-slate-700 hover:bg-slate-600 text-white p-3 rounded-lg text-xs font-bold text-center transition border border-slate-600 hover:border-orange-500 group">
+                                <i class="fa-solid fa-cloud text-xl block mb-1 text-orange-400 group-hover:scale-110 transition-transform"></i> Usar Nuvem
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="dataLoaded" class="hidden p-4 bg-emerald-900/20 border-l-4 border-emerald-500 h-full flex flex-col justify-center">
+                        <div class="flex justify-between items-center">
+                            <div><h2 class="font-bold text-white text-sm">Dados Ativos</h2><p id="rowCount" class="text-[10px] text-emerald-400 font-bold">0 Produtos</p></div>
+                            <button onclick="window.resetData()" class="text-xs bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded border border-slate-600 transition"><i class="fa-solid fa-rotate mr-1"></i> Trocar</button>
+                        </div>
+                        <div id="saveToCloudContainer" class="hidden pt-2 mt-2 border-t border-emerald-500/30">
+                            <button onclick="window.saveToCloud()" class="w-full bg-orange-600 hover:bg-orange-500 text-white py-2 rounded text-xs font-bold shadow flex items-center justify-center gap-2 transition">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Salvar no Firebase
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Seletor -->
+                <section class="glass-panel rounded-2xl p-1 flex gap-1 bg-slate-900/40">
+                    <button onclick="window.setMode('validade')" id="btnVal" class="flex-1 py-3 rounded-xl text-sm font-bold bg-accent text-white shadow-lg transition">Validade</button>
+                    <button onclick="window.setMode('endereco')" id="btnEnd" class="flex-1 py-3 rounded-xl text-sm font-bold text-slate-400 hover:text-white transition">Endereço</button>
+                </section>
+
+                <!-- 3. Entrada -->
+                <section class="glass-panel rounded-2xl p-6 relative min-h-[300px] flex flex-col">
                     <div id="lockScreen" class="absolute inset-0 z-20 bg-slate-900/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center text-center p-4">
-                        <div class="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center mb-3 ring-1 ring-slate-700"><i class="fa-solid fa-upload text-slate-500"></i></div>
-                        <p class="text-sm text-slate-300 font-bold">Carregue o Excel</p>
-                        <p class="text-[10px] text-slate-500">Para começar a bipar</p>
+                        <i class="fa-solid fa-lock text-3xl text-slate-600 mb-2"></i>
+                        <p class="text-sm text-slate-300 font-bold">Carregue os Produtos</p>
                     </div>
 
-                    <!-- Validade -->
+                    <!-- Form Validade -->
                     <div id="formValidade" class="space-y-4">
                         <div>
-                            <label class="text-xs font-bold text-slate-400 uppercase ml-1">Código</label>
-                            <div class="relative mt-1">
-                                <i class="fa-solid fa-barcode absolute left-3 top-3 text-slate-500"></i>
-                                <input type="text" id="valCode" inputmode="numeric" class="input-std w-full rounded-xl py-3 pl-10 pr-4 font-mono text-lg" placeholder="Scan..." 
-                                       oninput="this.value=this.value.replace(/[^0-9]/g,''); checkValidadeCode(this)" 
-                                       onkeydown="handleEnter(event, 'valCode')">
-                            </div>
+                            <label class="text-xs font-bold text-slate-400 uppercase">Código</label>
+                            <input type="tel" id="valCode" class="input-std w-full rounded-xl py-3 px-4 text-lg mt-1" placeholder="Scan..." oninput="window.checkCode(this, 'valPreview')" onkeydown="window.handleEnter(event)">
                             <div id="valPreview" class="h-5 text-xs font-bold mt-1 pl-1 truncate"></div>
                         </div>
-                        <div id="dateContainer" class="hidden">
-                            <label class="text-xs font-bold text-accent uppercase ml-1">Validade</label>
+                        <div id="dateContainer" class="hidden animate-pulse">
+                            <label class="text-xs font-bold text-accent uppercase">Validade</label>
                             <div class="relative mt-1">
-                                <i class="fa-solid fa-calendar absolute left-3 top-3 text-accent"></i>
-                                <input type="text" id="valDate" inputmode="numeric" class="input-std w-full rounded-xl py-3 pl-10 pr-4 font-mono text-lg border-accent focus:border-accent" placeholder="MM/AAAA" 
-                                       oninput="maskDate(this)" 
-                                       onkeydown="handleEnter(event, 'valDate')">
-                                <button onclick="addValItem()" class="absolute right-2 top-2 bottom-2 bg-success hover:bg-emerald-600 text-white px-4 rounded-lg text-sm font-bold transition">OK</button>
+                                <input type="tel" id="valDate" class="input-std w-full rounded-xl py-3 px-4 text-lg border-accent focus:border-accent" placeholder="MMAAAA" oninput="window.maskDate(this)" onkeydown="window.handleEnter(event)">
+                                <button onclick="window.addValItem()" class="absolute right-2 top-2 bottom-2 bg-success hover:bg-emerald-600 text-white px-4 rounded-lg text-sm font-bold shadow">OK</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Endereço -->
+                    <!-- Form Endereço -->
                     <div id="formEndereco" class="hidden flex flex-col h-full">
-                        <!-- Abas internas -->
                         <div class="relative flex bg-slate-900 rounded-lg p-1 mb-6 border border-slate-700/50">
                             <div id="tabBg" class="tab-bg absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-blue-600 rounded-md shadow-lg z-0"></div>
-                            <button onclick="switchTab('unit')" class="flex-1 py-2 text-xs font-bold uppercase relative z-10 text-white transition-colors" id="btnTabUnit">Unitário</button>
-                            <button onclick="switchTab('mass')" class="flex-1 py-2 text-xs font-bold uppercase relative z-10 text-slate-400 hover:text-white transition-colors" id="btnTabMass">Massa</button>
+                            <button onclick="window.switchTab('unit')" class="flex-1 py-2 text-xs font-bold uppercase relative z-10 text-white transition" id="btnTabUnit">Unitário</button>
+                            <button onclick="window.switchTab('mass')" class="flex-1 py-2 text-xs font-bold uppercase relative z-10 text-slate-400 transition" id="btnTabMass">Massa</button>
                         </div>
-                        
-                        <!-- Unitário -->
                         <div id="singleEntry" class="space-y-4">
-                            <label class="text-xs font-bold text-slate-400 uppercase ml-1">Código Unitário</label>
+                            <label class="text-xs font-bold text-slate-400 uppercase">Código</label>
                             <div class="flex gap-2">
-                                <input type="text" id="endCode" inputmode="numeric" class="input-std flex-grow rounded-xl py-3 px-4 font-mono text-lg" placeholder="Scan..." 
-                                       oninput="this.value=this.value.replace(/[^0-9]/g,''); checkEndCode(this)"
-                                       onkeydown="handleEnter(event, 'endCode')">
-                                <button onclick="addEndItem()" class="bg-accent hover:brightness-110 text-white px-5 rounded-xl font-bold text-lg shadow-lg"><i class="fa-solid fa-plus"></i></button>
+                                <input type="tel" id="endCode" class="input-std flex-grow rounded-xl py-3 px-4 text-lg" placeholder="Scan..." oninput="window.checkEndCode(this)" onkeydown="window.handleEnterEnd(event)">
+                                <button onclick="window.addEndItem()" class="bg-accent hover:brightness-110 text-white px-5 rounded-xl font-bold text-lg shadow-lg"><i class="fa-solid fa-plus"></i></button>
                             </div>
                             <div id="endPreview" class="h-5 text-xs font-bold mt-1 pl-1 truncate text-slate-500"></div>
                         </div>
-                        
-                        <!-- Massa -->
                         <div id="massEntry" class="hidden space-y-2">
-                            <label class="text-xs font-bold text-slate-400 uppercase ml-1">Colar Lista</label>
-                            <textarea id="endList" rows="5" class="input-std w-full rounded-xl p-3 font-mono text-xs" placeholder="73804&#10;73805..."></textarea>
-                            <button onclick="addEndList()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl text-sm font-bold transition shadow-lg border border-slate-600">Processar Lista</button>
+                            <label class="text-xs font-bold text-slate-400 uppercase">Lista</label>
+                            <textarea id="endList" rows="5" class="input-std w-full rounded-xl p-3 text-xs" placeholder="73804..."></textarea>
+                            <button onclick="window.addListEnd()" class="w-full bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl text-sm font-bold border border-slate-600">Processar</button>
                         </div>
                     </div>
                 </section>
             </div>
 
-            <!-- DIREITA -->
+            <!-- DIREITA: Fila -->
             <div class="lg:col-span-7 space-y-6 flex flex-col h-full">
                 <section class="glass-panel rounded-2xl p-5 flex-grow flex flex-col min-h-[400px]">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="font-bold text-white flex items-center gap-2">
-                            <i class="fa-solid fa-list-check text-accent"></i> Fila de Impressão
-                            <span id="queueBadge" class="bg-accent text-white text-[10px] px-2 py-0.5 rounded-full shadow">0</span>
-                        </h2>
-                        <button onclick="clearQueue()" class="text-xs text-red-400 hover:text-red-300 underline font-bold cursor-pointer transition">
-                            <i class="fa-solid fa-trash-can mr-1"></i> Limpar Fila
-                        </button>
+                        <h2 class="font-bold text-white flex items-center gap-2"><i class="fa-solid fa-list-check text-accent"></i> Fila Realtime <span id="queueBadge" class="bg-accent text-white text-[10px] px-2 py-0.5 rounded-full shadow">0</span></h2>
+                        <button onclick="window.clearQueue()" class="text-xs text-red-400 hover:text-red-300 underline font-bold cursor-pointer transition">Limpar</button>
                     </div>
 
                     <div class="flex-grow overflow-y-auto bg-slate-900/50 rounded-xl border border-slate-700/50 relative h-64">
                         <table class="w-full text-left text-sm text-slate-400">
                             <thead class="bg-slate-800 text-xs uppercase font-bold text-slate-300 sticky top-0 z-10">
-                                <tr>
-                                    <th class="p-3 w-10">#</th>
-                                    <th class="p-3">Produto</th>
-                                    <th class="p-3">Validade</th>
-                                    <th class="p-3 text-right"></th>
-                                </tr>
+                                <tr><th class="p-3 w-10">#</th><th class="p-3">Produto</th><th class="p-3 text-center">Validade</th><th class="p-3 text-right"></th></tr>
                             </thead>
                             <tbody id="queueTable" class="divide-y divide-slate-700/50">
-                                <tr><td colspan="4" class="p-10 text-center text-slate-600 italic">A fila está vazia.</td></tr>
+                                <tr><td colspan="4" class="p-10 text-center text-slate-600 italic">Aguardando dados...</td></tr>
                             </tbody>
                         </table>
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-                        <!-- Botão Gerar -->
-                        <button onclick="generateZPL()" class="col-span-2 md:col-span-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition shadow-lg flex justify-center items-center gap-2 active:scale-95">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar
-                        </button>
-                        
-                        <!-- Botão Imprimir Direto -->
-                        <button onclick="printDirect()" id="btnPrintDirect" disabled class="col-span-2 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2 cursor-not-allowed border border-slate-600">
-                            <i class="fa-solid fa-print"></i> Direto USB
-                        </button>
-
-                        <button onclick="copyZPL()" id="btnCopy" disabled class="bg-slate-700 text-slate-500 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2 cursor-not-allowed border border-slate-600">
-                            <i class="fa-solid fa-copy"></i> Copiar
-                        </button>
-                        <button onclick="downloadFile()" id="btnDownload" disabled class="bg-slate-700 text-slate-500 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2 cursor-not-allowed border border-slate-600">
-                            <i class="fa-solid fa-download"></i> Baixar
-                        </button>
+                        <button onclick="window.generateZPL()" class="col-span-2 md:col-span-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl shadow-lg flex justify-center items-center gap-2 active:scale-95 transition"><i class="fa-solid fa-wand-magic-sparkles"></i> Gerar</button>
+                        <button onclick="window.printDirect()" id="btnPrintDirect" disabled class="col-span-2 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-3 rounded-xl border border-slate-600 cursor-not-allowed transition flex justify-center items-center gap-2"><i class="fa-solid fa-print"></i> Direto USB</button>
+                        <button onclick="window.downloadFile()" id="btnDownload" disabled class="col-span-2 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-3 rounded-xl border border-slate-600 cursor-not-allowed transition flex justify-center items-center gap-2"><i class="fa-solid fa-download"></i> Baixar Txt</button>
+                        <button onclick="window.copyZPL()" id="btnCopy" disabled class="col-span-4 md:col-span-1 bg-slate-700 text-slate-500 font-bold py-2 rounded-xl border border-slate-600 cursor-not-allowed mt-1 text-xs uppercase transition flex justify-center items-center gap-2"><i class="fa-solid fa-copy"></i> Copiar</button>
                     </div>
-                    
                     <textarea id="finalZPL" readonly class="mt-4 w-full h-24 bg-black text-green-500 font-mono text-[10px] p-2 rounded border border-slate-700 focus:outline-none resize-none" placeholder="O código ZPL aparecerá aqui..."></textarea>
                 </section>
                 
                 <div class="text-center mt-4">
-                    <button onclick="connectPrinter()" class="text-xs text-slate-500 underline hover:text-slate-300">Conectar Impressora USB (PC)</button>
+                    <button onclick="window.connectUSB()" class="text-xs text-slate-500 underline hover:text-slate-300">Conectar Impressora USB (Chrome/Edge)</button>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- MODAL DE AJUDA -->
-    <div id="helpModal" class="fixed inset-0 z-50 hidden">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="toggleModal('helpModal')"></div>
-        <div class="relative bg-slate-800 rounded-2xl max-w-4xl w-full mx-4 my-10 shadow-2xl border border-slate-700 overflow-hidden transform scale-95 opacity-0 transition-all duration-300 left-1/2 top-5 -translate-x-1/2 flex flex-col max-h-[85vh]">
-            <div class="bg-slate-900 p-6 flex justify-between items-center border-b border-slate-700 shrink-0">
-                <h3 class="text-xl font-bold text-white flex items-center gap-2"><i class="fa-solid fa-headset text-accent"></i> Ajuda & Suporte</h3>
-                <button onclick="toggleModal('helpModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <!-- MODAL AJUDA -->
+    <div id="helpModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onclick="toggleModal('helpModal')">
+        <div class="bg-slate-800 w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-600 overflow-hidden" onclick="event.stopPropagation()">
+            <div class="bg-slate-900 p-4 border-b border-slate-700 flex justify-between">
+                <h3 class="font-bold text-white">Ajuda</h3>
+                <button onclick="toggleModal('helpModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="p-8 space-y-8 overflow-y-auto">
-                <div class="text-center mb-6">
-                    <a href="https://wa.me/5598991401141" target="_blank" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg text-sm"><i class="fa-brands fa-whatsapp text-xl"></i> Falar com Suporte</a>
-                </div>
-                <div class="space-y-4">
-                    <h4 class="text-lg font-bold text-white border-b border-slate-700 pb-2">Impressão Direta USB</h4>
-                    <p class="text-xs text-slate-400">Para usar o botão "Direto USB":</p>
-                    <ul class="text-xs text-slate-400 list-disc list-inside">
-                        <li>Use o PC com Google Chrome ou Edge.</li>
-                        <li>Conecte o cabo USB da Zebra.</li>
-                        <li>Clique em "Conectar Impressora USB" no rodapé da página.</li>
-                    </ul>
-                </div>
+            <div class="p-6 text-center">
+                <a href="https://wa.me/5598991401141" target="_blank" class="btn bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl shadow-lg w-full md:w-auto inline-flex px-6">
+                    <i class="fa-brands fa-whatsapp text-xl mr-2"></i> Suporte WhatsApp
+                </a>
             </div>
-            <div class="border-t border-slate-700 p-4 text-center bg-slate-900 shrink-0"><p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Criado por Benilson Amorim</p></div>
         </div>
     </div>
 
     <!-- TOAST -->
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-xl font-bold opacity-0 pointer-events-none transition-opacity duration-300 z-[70] flex items-center gap-2 transform translate-y-4">
-        <i class="fa-solid fa-check-circle"></i> <span>Sucesso!</span>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-xl font-bold opacity-0 pointer-events-none transition-all duration-300 z-[100] translate-y-10">
+        <i class="fa-solid fa-check-circle"></i> <span>Ação realizada!</span>
     </div>
 
-    <script>
-        // --- LOCAL STORAGE LOGIC ---
-        let inventory = JSON.parse(localStorage.getItem('zpl_inventory')) || [];
-        let printQueue = JSON.parse(localStorage.getItem('zpl_queue')) || [];
+    <!-- FIREBASE & APP LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // CONFIGURAÇÃO FIREBASE (FORNECIDA)
+        const firebaseConfig = {
+            apiKey: "AIzaSyB1DaTOer5_cZ-JT15FlZGapNV1nUDrhmE",
+            authDomain: "acai-delibery.firebaseapp.com",
+            databaseURL: "https://acai-delibery-default-rtdb.firebaseio.com",
+            projectId: "acai-delibery",
+            storageBucket: "acai-delibery.firebasestorage.app",
+            messagingSenderId: "476733774850",
+            appId: "1:476733774850:web:0549e47df6ee8dc2e79b1b",
+            measurementId: "G-98GT80SD7J"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- GLOBAL VARIABLES (Window binding needed for modules) ---
+        window.inventory = [];
+        window.queue = [];
+        window.serialPort = null;
         let currentMode = 'validade';
-        let serialPort = null;
 
-        // INIT
-        window.onload = function() {
-            if(inventory.length > 0) {
-                document.getElementById('lockScreen').classList.add('hidden');
-                document.getElementById('dbCount').innerText = `${inventory.length} produtos carregados`;
-                document.getElementById('dbCount').classList.add('text-emerald-400');
-            }
-            updateQueueUI();
-        }
+        // --- INIT ---
+        const statusBox = document.getElementById('statusBox');
+        statusBox.classList.remove('bg-yellow-600');
+        statusBox.classList.add('bg-emerald-600');
+        statusBox.innerHTML = '<i class="fa-solid fa-fire"></i> CONECTADO AO FIREBASE';
+        setTimeout(() => statusBox.classList.add('hidden'), 2000);
 
-        // 1. DATA HANDLING
-        document.getElementById('fileInput').addEventListener('change', async (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            document.getElementById('loadingBar').classList.remove('hidden');
-            
-            setTimeout(async () => {
-                try {
-                    const buffer = await file.arrayBuffer();
-                    const wb = XLSX.read(buffer, { type: 'array' });
-                    const ws = wb.Sheets[wb.SheetNames[0]];
-                    const raw = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                    
-                    inventory = raw.slice(1).map(r => {
-                        if (!r || !r[0]) return null;
-                        const c = v => String(v || "").trim().toUpperCase();
-                        return { COD: c(r[0]), NOM: c(r[1]), RUA: c(r[4]), RCK: c(r[5]), LIN: c(r[6]), COL: c(r[7]) };
-                    }).filter(i => i !== null);
-
-                    localStorage.setItem('zpl_inventory', JSON.stringify(inventory));
-                    
-                    document.getElementById('lockScreen').classList.add('hidden');
-                    document.getElementById('dbCount').innerText = `${inventory.length} produtos carregados`;
-                    document.getElementById('dbCount').classList.add('text-emerald-400');
-                    showToast("Base de Dados Atualizada!");
-                    
-                } catch (err) { alert("Erro ao ler Excel: " + err.message); } 
-                finally { 
-                    document.getElementById('loadingBar').classList.add('hidden'); 
-                    e.target.value = ''; 
-                }
-            }, 500);
+        // --- REALTIME SYNC (THE MAGIC) ---
+        const qQueue = query(collection(db, "print_queue"), orderBy("created_at"));
+        
+        onSnapshot(qQueue, (snapshot) => {
+            window.queue = [];
+            snapshot.forEach((doc) => {
+                const d = doc.data();
+                const p = window.findProd(d.codigo);
+                window.queue.push({
+                    id: doc.id,
+                    COD: d.codigo,
+                    validade: d.validade,
+                    NOM: p ? p.NOM : (d.tempName || 'Aguardando Base...')
+                });
+            });
+            window.updateUI();
         });
 
-        function clearAllData() {
-            if(confirm("Isso apagará a base de produtos e a fila. Continuar?")) {
-                localStorage.removeItem('zpl_inventory');
-                localStorage.removeItem('zpl_queue');
-                location.reload();
-            }
-        }
-
-        // 2. QUEUE LOGIC
-        function saveQueue() { localStorage.setItem('zpl_queue', JSON.stringify(printQueue)); updateQueueUI(); }
-
-        function updateQueueUI() {
-            const tb = document.getElementById('queueTable');
-            document.getElementById('queueBadge').innerText = printQueue.length;
-            document.getElementById('queueCount').innerText = printQueue.length;
+        // --- CLOUD FUNCTIONS ---
+        window.saveToCloud = async () => {
+            if(window.inventory.length === 0) return alert("Carregue Excel!");
+            if(!confirm("Substituir dados da nuvem?")) return;
             
-            // Buttons state
-            const btns = ['btnDownload', 'btnCopy', 'btnPrintDirect'];
-            btns.forEach(id => {
-                const b = document.getElementById(id);
-                b.disabled = printQueue.length === 0;
-                if(printQueue.length === 0) {
-                    b.classList.add('bg-slate-700', 'cursor-not-allowed', 'text-slate-500');
-                    b.classList.remove('bg-success', 'bg-accent');
-                } else {
-                    b.classList.remove('bg-slate-700', 'cursor-not-allowed', 'text-slate-500');
-                    if(id !== 'btnPrintDirect') b.classList.add(id === 'btnCopy' ? 'bg-accent' : 'bg-success');
-                }
-            });
-
-            if (printQueue.length === 0) {
-                tb.innerHTML = '<tr><td colspan="4" class="p-8 text-center italic text-slate-500">A fila está vazia.</td></tr>';
-                document.getElementById('finalZPL').value = "";
-                return;
-            }
-
-            tb.innerHTML = '';
-            printQueue.forEach((item, idx) => {
-                tb.innerHTML += `
-                    <tr class="border-b border-slate-700/50 hover:bg-slate-800/50 transition">
-                        <td class="p-3 text-slate-500 text-xs font-mono">${idx + 1}</td>
-                        <td class="p-3"><div class="font-bold text-white text-xs">${item.COD}</div><div class="text-[10px] truncate w-32 text-slate-400">${item.NOM}</div></td>
-                        <td class="p-3 text-emerald-400 text-xs font-mono text-center">${item.validade || '-'}</td>
-                        <td class="p-3 text-right"><button onclick="removeItem(${idx})" class="text-red-400 hover:text-white transition"><i class="fa-solid fa-times"></i></button></td>
-                    </tr>`;
-            });
-            tb.parentElement.scrollTop = tb.parentElement.scrollHeight;
-        }
-
-        function removeItem(idx) { printQueue.splice(idx, 1); saveQueue(); }
-        function clearQueue() { if(printQueue.length > 0 && confirm("Limpar fila?")) { printQueue = []; saveQueue(); showToast("Fila Limpa"); } }
-
-        // 3. PRODUCT LOGIC
-        function findProduct(code) { 
-            let f = inventory.find(i => i.COD == code);
-            if (!f) try { let n = parseInt(code); if (!isNaN(n)) f = inventory.find(i => parseInt(i.COD) === n); } catch (e) {}
-            return f;
-        }
-        
-        function extractEAN(val) {
-            val = val.replace(/\D/g, ''); 
-            if (val.length >= 12) return val.slice(-6, -1);
-            return val;
-        }
-
-        function checkValidadeCode(el) {
-            let val = el.value.replace(/\D/g, ''), fV = val;
-            if (val.length >= 12) fV = extractEAN(val);
-            const p = findProduct(fV);
-            const prev = document.getElementById('valPreview');
-            const dc = document.getElementById('dateContainer');
+            document.getElementById('uploadLoader').classList.remove('hide');
+            const batchLimit = 400; // Safe limit
             
-            if (p) {
-                el.value = fV; 
-                prev.innerText = p.NOM; prev.className = "h-5 text-xs font-bold mt-1 pl-1 truncate text-success";
-                dc.classList.remove('hidden'); 
-                setTimeout(() => document.getElementById('valDate').focus(), 100);
+            // Delete old (Simple way: fetch all IDs and delete)
+            const q = await getDocs(collection(db, "products"));
+            const batchDel = writeBatch(db);
+            let delCount = 0;
+            q.forEach((doc) => { batchDel.delete(doc.ref); delCount++; });
+            if(delCount > 0) await batchDel.commit();
+
+            // Insert new
+            const batchAdd = writeBatch(db);
+            window.inventory.slice(0, 450).forEach((item) => { // Limit to 450 for demo safety
+                const ref = doc(collection(db, "products"));
+                batchAdd.set(ref, item);
+            });
+            await batchAdd.commit();
+            
+            document.getElementById('uploadLoader').classList.add('hide');
+            window.showToast("Salvo no Firebase!");
+        };
+
+        window.loadFromCloud = async () => {
+            document.getElementById('uploadLoader').classList.remove('hide');
+            const q = await getDocs(collection(db, "products"));
+            window.inventory = [];
+            q.forEach((doc) => { window.inventory.push(doc.data()); });
+            
+            if(window.inventory.length > 0) {
+                window.updateDataInfo("Firebase", window.inventory.length);
+                window.updateUI(); // Refresh names
             } else {
-                prev.innerText = val.length > 3 ? "Não encontrado" : ""; 
-                prev.className = "h-5 text-xs font-bold mt-1 pl-1 truncate text-danger";
-                dc.classList.add('hidden');
+                alert("Banco vazio.");
             }
-        }
+            document.getElementById('uploadLoader').classList.add('hide');
+        };
 
-        function addValItem() {
+        // --- QUEUE ACTIONS ---
+        window.addItemVal = async () => {
             const c = document.getElementById('valCode').value;
-            const d = document.getElementById('valDate').value;
-            if (d.length < 7) return alert("Data inválida");
-            const p = findProduct(c);
-            if (p) {
-                printQueue.push({ ...p, validade: d });
-                saveQueue();
-                document.getElementById('valCode').value = ''; 
-                document.getElementById('valDate').value = ''; 
-                document.getElementById('valPreview').innerText = ''; 
-                document.getElementById('dateContainer').classList.add('hidden'); 
-                document.getElementById('valCode').focus(); 
-                showToast("Adicionado!");
-            }
-        }
+            const v = document.getElementById('valDate').value;
+            if(v.length < 7) return alert("Data inválida");
+            const p = window.findProd(c);
+            
+            await addDoc(collection(db, "print_queue"), {
+                codigo: c, validade: v, tempName: p ? p.NOM : 'Desconhecido', created_at: Date.now()
+            });
+            
+            document.getElementById('valCode').value=""; document.getElementById('valDate').value="";
+            document.getElementById('valPreview').innerText=""; document.getElementById('dateContainer').classList.add('hidden');
+            document.getElementById('valCode').focus();
+            window.showToast("Adicionado!");
+        };
+
+        window.addItemEnd = async () => {
+            const c = window.extract(document.getElementById('endCode').value);
+            const p = window.findProd(c);
+            await addDoc(collection(db, "print_queue"), {
+                codigo: c, validade: "", tempName: p ? p.NOM : 'Desconhecido', created_at: Date.now()
+            });
+            document.getElementById('endCode').value=""; document.getElementById('endCode').focus();
+            window.showToast("Adicionado!");
+        };
+
+        window.addListEnd = async () => {
+             const l=document.getElementById('endList').value.split(/[\n,;]+/).map(x=>window.extract(x)).filter(x=>x);
+             const batch = writeBatch(db);
+             let c=0;
+             l.forEach(x => {
+                 const p = window.findProd(x);
+                 if(p) {
+                     const ref = doc(collection(db, "print_queue"));
+                     batch.set(ref, {codigo: x, validade: "", tempName: p.NOM, created_at: Date.now() + c});
+                     c++;
+                 }
+             });
+             if(c>0) { await batch.commit(); document.getElementById('endList').value=""; window.showToast(`${c} enviados`); }
+             else alert("Nenhum válido");
+        };
+
+        window.removeFromQueue = async (id) => { await deleteDoc(doc(db, "print_queue", id)); };
         
-        // ... (Endereço Logic similar ao anterior)
-        function checkEndCode(el) { let v=el.value.replace(/\D/g,''); if(v.length>=12)v=extractEAN(v); const p=findProduct(v), pv=document.getElementById('endPreview'); if(p){pv.innerText=p.NOM; pv.className="h-5 text-xs font-bold mt-1 pl-1 truncate text-success";} else {pv.innerText=v.length>3?"Não encontrado":""; pv.className="h-5 text-xs font-bold mt-1 pl-1 truncate text-slate-500";} }
-        function addEndItem() { const el=document.getElementById('endCode'), v=extractEAN(el.value.replace(/\D/g,'')); const p=findProduct(v); if(p){ printQueue.push({...p,validade:""}); saveQueue(); el.value=''; el.focus(); showToast("Add!"); } else alert("Não encontrado"); }
-        function addListEnd() { const lines=document.getElementById('endList').value.split(/[\n,;]+/).map(x=>extractEAN(x.replace(/\D/g,''))).filter(x=>x); let c=0; lines.forEach(x=>{const p=findProduct(x); if(p){printQueue.push({...p,validade:""}); c++;}}); if(c>0){saveQueue(); document.getElementById('endList').value=''; showToast(`${c} itens`);} else alert("Nenhum válido"); }
+        window.clearQueue = async () => {
+            if(!confirm("Limpar?")) return;
+            const q = await getDocs(collection(db, "print_queue"));
+            const batch = writeBatch(db);
+            q.forEach((d) => batch.delete(d.ref));
+            await batch.commit();
+            window.showToast("Fila Limpa");
+        };
 
-        // 4. ZPL & PRINT
-        function generateZPL() {
-            if(printQueue.length===0) return alert("Fila vazia");
-            let fullCode="";
-            const clean = (t, type) => {
-                let s = String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-                if(type === 'RUA') s = s.replace(/^RUA\s*:?\s*/i, "");
-                if(type === 'RCK') s = s.replace(/^RACK\s*:?\s*/i, "");
-                if(type === 'LIN') s = s.replace(/^(LINHA|LIN)\s*:?\s*/i, "");
-                if(type === 'COL') s = s.replace(/^(COLUNA|COL)\s*:?\s*/i, "");
-                return s.trim().substring(0, 28);
-            };
+        // --- EXCEL & UTILS ---
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const f = e.target.files[0]; if(!f) return;
+            document.getElementById('uploadLoader').classList.remove('hide');
+            setTimeout(async()=>{ try { const b=await f.arrayBuffer(); const wb=XLSX.read(b,{type:'array'}); const r=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1}); 
+            window.inventory=r.slice(1).map(x=>({COD:String(x[0]||"").trim().toUpperCase(),NOM:String(x[1]||"").trim().toUpperCase(),RUA:String(x[4]||"").trim(),RCK:String(x[5]||"").trim(),LIN:String(x[6]||"").trim(),COL:String(x[7]||"").trim()})).filter(x=>x.COD); 
+            window.updateDataInfo("Excel", window.inventory.length); document.getElementById('btnSaveCloud').classList.remove('hidden'); window.updateUI(); } catch(err){ alert(err.message); } finally{ document.getElementById('uploadLoader').classList.add('hide'); e.target.value=''; } },600);
+        });
 
-            for (let i = 0; i < printQueue.length; i += 2) {
-                const top = printQueue[i];
-                const bot = (i + 1 < printQueue.length) ? printQueue[i + 1] : null;
-
-                let zpl = `^XA\n^CI28^PW812^LL609^LH0,0^MD30\n`;
-                zpl += `^FX TOPO\n^FO20,5^A0N,100,90^FD${top.COD}^FS\n${top.validade ? `^FO235,-5^GB550,60,75^FS\n^FO250,5^A0N,95,90^FR^FDVAL: ${top.validade}^FS` : ''}\n^FO20,110^A0N,75,75^FB770,2,0,L,0^FD${clean(top.NOM)}^FS\n^FO20,280^A0N,45,45^FDRUA: ${clean(top.RUA,'RUA')} - RACK: ${clean(top.RCK,'RCK')}^FS\n^FO20,330^A0N,45,45^FDLINHA: ${clean(top.LIN,'LIN')} - COL: ${clean(top.COL,'COL')}^FS\n^BY4,3,100^FO20,390^BCN,130,Y,N,N^FD${top.COD}^FS\n^FO620,370^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
-                if (bot) {
-                    zpl += `^FX BASE\n^FO20,600^A0N,100,90^FD${bot.COD}^FS\n${bot.validade ? `^FO235,590^GB550,65,85^FS\n^FO250,600^A0N,95,90^FR^FDVAL: ${bot.validade}^FS` : ''}\n^FO20,705^A0N,75,75^FB770,2,0,L,0^FD${clean(bot.NOM)}^FS\n^FO20,875^A0N,45,45^FDRUA: ${clean(bot.RUA,'RUA')} - RACK: ${clean(bot.RCK,'RCK')}^FS\n^FO20,925^A0N,45,45^FDLINHA: ${clean(bot.LIN,'LIN')} - COL: ${clean(bot.COL,'COL')}^FS\n^BY4,3,100^FO20,985^BCN,130,Y,N,N^FD${bot.COD}^FS\n^FO620,965^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
-                }
-                zpl += `^XZ\n`; fullCode += zpl;
-            }
-            document.getElementById('finalZPL').value = fullCode;
-            if(serialPort) {
-                const b = document.getElementById('btnDirect'); b.disabled = false; b.classList.remove('bg-slate-700', 'cursor-not-allowed'); b.classList.add('bg-success');
-            }
-            showToast("ZPL Gerado!");
-        }
-
-        // --- USB ---
-        async function connectUSB() {
-            if (!('serial' in navigator)) return alert("Use Chrome no PC");
-            try {
-                serialPort = await navigator.serial.requestPort();
-                await serialPort.open({ baudRate: 115200 });
-                showToast("Impressora Conectada!");
-                if(document.getElementById('finalZPL').value) {
-                    const b = document.getElementById('btnDirect'); b.disabled = false; b.classList.remove('bg-slate-700', 'cursor-not-allowed'); b.classList.add('bg-success');
-                }
-            } catch (err) { alert("Erro: " + err.message); }
-        }
-        async function printDirect() {
-            if(!serialPort) return alert("Conecte a impressora.");
-            const w = serialPort.writable.getWriter();
-            await w.write(new TextEncoder().encode(document.getElementById('finalZPL').value));
-            w.releaseLock(); showToast("Enviado!");
-        }
-
-        // --- UTILS ---
-        function downloadFile() { const c=document.getElementById('finalZPL').value; if(!c)return; const a=document.createElement('a'); a.href=window.URL.createObjectURL(new Blob([c],{type:'text/plain'})); a.download=`etiquetas.txt`; a.click(); }
-        function copyZPL() { navigator.clipboard.writeText(document.getElementById('finalZPL').value).then(()=>showToast("Copiado!")); }
-        function maskDate(el) { let v=el.value.replace(/\D/g,''); if(v.length>2)v=v.substring(0,2)+'/'+v.substring(2,6); el.value=v; }
-        function showToast(msg) { const t=document.getElementById('toast'); t.querySelector('span').innerText=msg; t.classList.remove('opacity-0','translate-y-10'); setTimeout(()=>t.classList.add('opacity-0','translate-y-10'),2500); }
-        function handleEnter(e) { if(e.key==="Enter") if(document.activeElement.id==='valCode')checkValidadeCode(document.getElementById('valCode')); else if(document.activeElement.id==='valDate')addValItem(); }
-        function handleEnterEnd(e) { if(e.key==="Enter") addEndItem(); }
+        // BINDING HELPERS TO WINDOW
+        window.updateDataInfo = (s, c) => {
+            document.getElementById('lockScreen').classList.add('hidden'); document.getElementById('sourceSelection').classList.add('hidden'); 
+            document.getElementById('dataLoaded').classList.remove('hidden'); document.getElementById('rowCount').innerText = `${c} Produtos`;
+            if(s==="Excel") document.getElementById('saveToCloudContainer').classList.remove('hidden'); 
+            else document.getElementById('saveToCloudContainer').classList.add('hidden');
+            window.showToast("Carregado!"); 
+        };
+        window.resetData = () => { window.inventory=[]; document.getElementById('lockScreen').classList.remove('hidden'); document.getElementById('sourceSelection').classList.remove('hidden'); document.getElementById('dataLoaded').classList.add('hidden'); };
         
-        function setMode(m) {
-            document.getElementById('formValidade').classList.toggle('hidden', m !== 'validade');
-            document.getElementById('formEndereco').classList.toggle('hidden', m !== 'endereco');
+        window.findProd = (c) => { let f=window.inventory.find(i=>i.COD==c); if(!f)try{let n=parseInt(c); if(!isNaN(n))f=window.inventory.find(i=>parseInt(i.COD)===n)}catch(e){} return f; };
+        window.extract = (v) => { v=v.replace(/\D/g,''); return v.length>=12 ? v.slice(-6,-1) : v; };
+        window.maskDate = (el) => { let v=el.value.replace(/\D/g,''); if(v.length>2)v=v.substring(0,2)+'/'+v.substring(2,6); el.value=v; };
+        
+        window.checkCode = (el, prevId) => {
+            let v=el.value.replace(/\D/g,''), fV=v; if(v.length>=12)fV=window.extract(v); const p=window.findProd(fV); const prev=document.getElementById(prevId);
+            if(p){ el.value=fV; prev.innerText=p.NOM; if(prevId==='valName'){ document.getElementById('dateContainer').classList.remove('hidden'); setTimeout(()=>document.getElementById('valDate').focus(),100); } }
+            else prev.innerText=v.length>3?"Não encontrado":"";
+        };
+        
+        window.handleEnter = (e) => { if(e.key==="Enter"){ if(document.activeElement.id==='valCode')window.checkCode(document.getElementById('valCode'),'valPreview'); else window.addItemVal(); } };
+        window.handleEnterEnd = (e) => { if(e.key==="Enter") window.addItemEnd(); };
+
+        window.updateUI = () => {
+            const tb=document.getElementById('queueTable'); document.getElementById('queueCount').innerText=window.queue.length;
+            document.getElementById('finalZPL').classList.add('hidden');
+            ['btnDownload','btnCopy','btnDirect'].forEach(id=>{ const b=document.getElementById(id); b.disabled=true; b.classList.add('bg-slate-700','cursor-not-allowed'); b.classList.remove('bg-success','bg-accent','bg-emerald-600'); });
+            if(window.queue.length===0) return tb.innerHTML='<tr><td colspan="4" class="p-8 text-center italic opacity-50">Vazia</td></tr>';
+            tb.innerHTML = window.queue.map((i,idx)=> `<tr class="border-b border-slate-700 hover:bg-slate-800"><td class="p-3 text-slate-500 text-xs">${idx+1}</td><td class="p-3"><div class="font-bold text-white text-xs">${i.COD}</div><div class="text-[10px] truncate w-32 text-slate-400">${i.NOM}</div></td><td class="p-3 text-emerald-400 text-xs text-center">${i.validade||'-'}</td><td class="p-3 text-right"><button onclick="removeFromQueue('${i.id}')" class="text-red-400 hover:text-white"><i class="fa-solid fa-times"></i></button></td></tr>`).join('');
+            if(window.queue.length>0) { 
+                document.getElementById('btnDownload').disabled=false; document.getElementById('btnDownload').classList.replace('bg-slate-700','bg-blue-600'); document.getElementById('btnDownload').classList.remove('cursor-not-allowed');
+                document.getElementById('btnCopy').disabled=false; document.getElementById('btnCopy').classList.replace('bg-slate-700','bg-slate-600'); document.getElementById('btnCopy').classList.remove('cursor-not-allowed');
+            }
+            if(window.serialPort && window.queue.length>0) { document.getElementById('btnDirect').disabled=false; document.getElementById('btnDirect').classList.replace('bg-slate-700','bg-emerald-600'); document.getElementById('btnDirect').classList.remove('cursor-not-allowed'); }
+        };
+
+        // UI Toggles
+        window.setMode = (m) => {
+            document.getElementById('formValidade').classList.toggle('hidden', m!=='validade');
+            document.getElementById('formEndereco').classList.toggle('hidden', m!=='endereco');
             const bV=document.getElementById('tabVal'), bE=document.getElementById('tabEnd');
-            if(m==='validade'){bV.className="flex-1 py-2 rounded font-bold text-xs bg-blue-600 text-white"; bE.className="flex-1 py-2 rounded font-bold text-xs text-slate-400";}
-            else{bE.className="flex-1 py-2 rounded font-bold text-xs bg-purple-600 text-white"; bV.className="flex-1 py-2 rounded font-bold text-xs text-slate-400";}
-            switchTab('unit');
-        }
-        function switchTab(t) {
-            const bg=document.getElementById('tabBg'),bU=document.getElementById('btnTabUnit'),bM=document.getElementById('btnTabMass');
-            if(t==='unit'){bg.style.transform='translateX(0)';bU.classList.replace('text-slate-400','text-white');bM.classList.replace('text-white','text-slate-400');document.getElementById('singleEntry').classList.remove('hidden');document.getElementById('massEntry').classList.add('hidden');document.getElementById('endCode').focus();}else{bg.style.transform='translateX(100%)';bM.classList.replace('text-slate-400','text-white');bU.classList.replace('text-white','text-slate-400');document.getElementById('singleEntry').classList.add('hidden');document.getElementById('massEntry').classList.remove('hidden');document.getElementById('endList').focus();}
-        }
-        function toggleModal(id) { document.getElementById(id).classList.toggle('hidden'); }
+            if(m==='validade'){ bV.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white transition"; bE.className="flex-1 py-2 text-xs font-bold rounded text-slate-400 transition"; }
+            else { bE.className="flex-1 py-2 text-xs font-bold rounded bg-blue-600 text-white transition"; bV.className="flex-1 py-2 text-xs font-bold rounded text-slate-400 transition"; }
+            if(m==='endereco') { document.getElementById('endCode').focus(); } else { document.getElementById('valCode').focus(); }
+        };
+        window.toggleModal = (id) => document.getElementById(id).classList.toggle('hidden');
+        window.showToast = (msg) => { const t = document.getElementById('toast'); t.querySelector('span').innerText = msg; t.classList.remove('translate-y-10', 'opacity-0'); setTimeout(() => t.classList.add('translate-y-10', 'opacity-0'), 2500); };
+
+        // ZPL
+        window.generateZPL = () => {
+            if(window.queue.length===0) return alert("Vazia");
+            let full=""; const clean=(t,tp)=>{ let s=String(t||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase(); if(tp==='R')s=s.replace(/^RUA:?\s*/i,""); if(tp==='K')s=s.replace(/^RACK:?\s*/i,""); if(tp==='L')s=s.replace(/^(LINHA|LIN):?\s*/i,""); if(tp==='C')s=s.replace(/^(COLUNA|COL):?\s*/i,""); return s.substring(0,28); };
+            for(let i=0; i<window.queue.length; i+=2) {
+                let t=window.queue[i], b=window.queue[i+1]; const pt=window.findProd(t.COD)||t, pb=b?(window.findProd(b.COD)||b):null;
+                let z=`^XA\n^CI28^PW812^LL609^LH0,0^MD30\n`;
+                z+=`^FX TOPO\n^FO20,5^A0N,100,90^FD${pt.COD}^FS\n${t.validade?`^FO235,-5^GB550,60,75^FS\n^FO250,5^A0N,95,90^FR^FDVAL: ${t.validade}^FS`:''}\n^FO20,110^A0N,75,75^FB770,2,0,L,0^FD${clean(pt.NOM)}^FS\n^FO20,280^A0N,45,45^FDRUA: ${clean(pt.RUA,'R')} - RACK: ${clean(pt.RCK,'K')}^FS\n^FO20,330^A0N,45,45^FDLINHA: ${clean(pt.LIN,'L')} - COL: ${clean(pt.COL,'C')}^FS\n^BY4,3,100^FO20,390^BCN,130,Y,N,N^FD${pt.COD}^FS\n^FO620,370^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`;
+                if(pb){ z+=`^FX BOT\n^FO20,600^A0N,100,90^FD${pb.COD}^FS\n${b.validade?`^FO235,590^GB550,65,85^FS\n^FO250,600^A0N,95,90^FR^FDVAL: ${b.validade}^FS`:''}\n^FO20,705^A0N,75,75^FB770,2,0,L,0^FD${clean(pb.NOM)}^FS\n^FO20,875^A0N,45,45^FDRUA: ${clean(pb.RUA,'R')} - RACK: ${clean(pb.RCK,'K')}^FS\n^FO20,925^A0N,45,45^FDLINHA: ${clean(pb.LIN,'L')} - COL: ${clean(pb.COL,'C')}^FS\n^BY4,3,100^FO20,985^BCN,130,Y,N,N^FD${pb.COD}^FS\n^FO620,965^BQN,2,4,Q,150^FDLA,https://www.instagram.com/dan_zk47?igsh=MXF5azdnZW01MzQ0^FS\n`; }
+                z+=`^XZ\n`; full+=z;
+            }
+            document.getElementById('finalZPL').value=full; document.getElementById('finalZPL').classList.remove('hidden'); window.showToast("ZPL Gerado!");
+        };
+
+        window.connectUSB = async () => { if(!navigator.serial)return alert("Use PC"); try{window.serialPort=await navigator.serial.requestPort(); await window.serialPort.open({baudRate:115200}); window.showToast("Conectado!"); window.updateUI();} catch(e){alert("Erro: "+e.message);} };
+        window.printDirect = async () => { if(!window.serialPort)return; const w=window.serialPort.writable.getWriter(); await w.write(new TextEncoder().encode(document.getElementById('finalZPL').value)); w.releaseLock(); window.showToast("Enviado!"); };
+        window.downloadFile = () => { const c=document.getElementById('finalZPL').value; if(!c)return; const a=document.createElement('a'); a.href=window.URL.createObjectURL(new Blob([c],{type:'text/plain'})); a.download=`etiquetas.txt`; a.click(); };
+        window.copyZPL = () => { navigator.clipboard.writeText(document.getElementById('finalZPL').value); window.showToast("Copiado!"); };
     </script>
 </body>
 </html>
